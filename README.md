@@ -1,5 +1,9 @@
 # GraFT: Graph of Filaments over Time
-![alt text](https://github.com/Oesterlund/GraFT/blob/main/nicegraph2.png)
+<!--![alt text](https://github.com/Oesterlund/GraFT/blob/main/nicegraph2.png) -->
+<p align="center">
+   <img src="https://github.com/Oesterlund/GraFT/blob/main/nicegraph2.png" alt="alt text" width="500">
+</p>
+
 
 This tool is designed for identification and tracking of filamentous structures from 2D timeseries image data.
 
