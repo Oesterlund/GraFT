@@ -1,7 +1,7 @@
 # GraFT: Graph of Filaments over Time
 <!--![alt text](https://github.com/Oesterlund/GraFT/blob/main/GraFt_logo.png) -->
 <p align="center">
-   <img src="https://github.com/Oesterlund/GraFT/blob/main/nicegraph2.png" alt="alt text" width="500">
+   <img src="https://github.com/Oesterlund/GraFT/blob/main/GraFT_logo.png" alt="alt text" width="500">
 </p>
 
 
