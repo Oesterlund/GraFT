@@ -47,10 +47,28 @@ conda install astropy==5.1
 ```
 
 ## Getting started
-The code contains a helper script, utilsF and a main script run calling the helper script. Please remember to change the line with the location of the utilsF script, to the one on your computer.
+In the folder GraFT you will find two scirpts and additional folders, download the main folder.
+The two scripts utilsF.py and run.py is the code.  
+The code contains a helper script, utilsF.py and a main script run.py calling the helper script. Please remember to change the line with the location of the utilsF script, to the one on your computer.
 All import lines must be changed to the correct location on your computer, both for files, savepath and utilsF.
 Run the function you wish, either create_all or create_all_still, and folders will be created in the directory location you defined with figures and datafile.
-The folders contain the created figures and csv file of the outputs.
+The folders contain the created figures and csv file of the outputs
+```
+img_o = io.imread("/your_directory_path_here/your_image_file")
+maskDraw = io.imread("/your_directory_path_here/your_mask_file")
+create_all(pathsave = "/your_directory_path_here/",
+           img_o=img_o,
+           maskDraw=maskDraw,
+           size=6,eps=200,thresh_top=0.5,sigma=sigma,small=small,angleA=140,overlap=4,max_cost=100,
+           name_cell='your prefered name here')
+```
+Or for image-data containing one image only, use instead:
+create_all_still(pathsave = "/your_directory_path_here/",
+           img_o=img_o,
+           maskDraw=maskDraw,
+           size=6,eps=200,thresh_top=0.5,sigma=sigma,small=small,angleA=140,overlap=4,
+           name_cell='your prefered name here')
+```
 
 # References
 refeer to paper here
