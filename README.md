@@ -15,30 +15,41 @@ Importantly, GraFT can be used to determine and compare properties of filamentou
 # Workflow/Documentation
 
 ## Dependencies
-The method was written in Python 3.8 and is dependent on the libraries:
-- NetworkX
-- Scikit-Image
-- Scipy
-- Pandas
-- Numpy
-- Matplotlib
+The method was written in Python 3.8 and is dependent on the libraries mentioned below.
+Current libraries with versions was used to build the code:
+- networkx 2.8.4
+- scikit-image 0.19.3
+- scipy 1.9.3
+- pandas 1.4.4
+- numpy 1.23.5
+- matplotlib 3.5.1
+- simplification 0.6.2
+- plotly 5.11.0
+- astropy 5.1
+- pickle 4.0
 
-I recommend creating a new python environment using conda
+I recommend creating a new python environment using conda and activate it to install dependencies
 ```
-conda create -n name_env python
+conda create -n CDFS python
+conda activate CDFS
 ```
-And install the dependencies
+And install the dependencies with either pip or conda
 ```
-conda install NetworkX
-conda install numpy
-conda install pandas
-conda install scipy
+conda install NetworkX==2.8.4
+conda install scikit-image 0.19.3
+conda install scipy==1.9.3
+conda install pandas==1.4.4
+conda install numpy==1.23.5
+conda install matplotlib==3.5.1
+conda install simplification==0.6.2
+conda install plotly==5.11.0
+conda install astropy==5.1
 ```
 
 ## Getting started
-The script contains a helper script, utils and a main script calling the helper script. Please remember to change the line with the location of the utils script, to the one on your computer.
-When importing a dataset, change the line to the location of your data, and import it.
-Run the function, and a folder named after your choice will be created in the directory location you defined.
+The code contains a helper script, utilsF and a main script run calling the helper script. Please remember to change the line with the location of the utilsF script, to the one on your computer.
+All import lines must be changed to the correct location on your computer, both for files, savepath and utilsF.
+Run the function you wish, either create_all or create_all_still, and folders will be created in the directory location you defined with figures and datafile.
 The folders contain the created figures and csv file of the outputs.
 
 # References
