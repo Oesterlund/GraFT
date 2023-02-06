@@ -710,63 +710,67 @@ def condense_mask(index_list,imageNodeCondense,mask,size):
         DESCRIPTION.
 
     '''
-    len_index = np.zeros(len(index_list))
-    correct_pos1 = [0]*len(index_list)
-    correct_pos2 = [0]*len(index_list)
-    nodenum1 = np.zeros(len(index_list))
-    nodenum2 = np.zeros(len(index_list))
-    posx,posy = np.nonzero((imageNodeCondense>0)*1)
-    index1 = np.zeros(len(posx))
-    index2 = np.zeros(len(posx))
-    for i in range(len(index_list)):
-        #if smaller than 10 in length, then remove this one
-        len_index[i] = np.sqrt((index_list[i][0][0] - index_list[i][1][0] )**2 + (index_list[i][0][1] - index_list[i][1][1] )**2 )
-        for j in range(len(posx)):
-            index1[j] = np.sqrt((index_list[i][0][0] - posx[j] )**2 + (index_list[i][0][1] - posy[j] )**2 )
-            index2[j] = np.sqrt((index_list[i][1][0] - posx[j] )**2 + (index_list[i][1][1] - posy[j] )**2 )
-        argm1 = np.argmin(index1)
-        argm2 = np.argmin(index2)
-        correct_pos1[i] = list((posx[argm1],posy[argm1]))
-        nodenum1[i] = argm1
-        correct_pos2[i] = list((posx[argm2],posy[argm2]))
-        nodenum2[i] = argm2
-
-    index_pd = pd.DataFrame(index_list)
-    index_pd[3] = len_index
-    index_pd[4] = correct_pos1
-    index_pd[5] = nodenum1
-    index_pd[6] = correct_pos2
-    index_pd[7] = nodenum2
-    #df = index_pd[index_pd[3] > size]
-    df= index_pd
+    if(index_list==[]):
+        df_new = []
+        
+    else:
+        len_index = np.zeros(len(index_list))
+        correct_pos1 = [0]*len(index_list)
+        correct_pos2 = [0]*len(index_list)
+        nodenum1 = np.zeros(len(index_list))
+        nodenum2 = np.zeros(len(index_list))
+        posx,posy = np.nonzero((imageNodeCondense>0)*1)
+        index1 = np.zeros(len(posx))
+        index2 = np.zeros(len(posx))
+        for i in range(len(index_list)):
+            #if smaller than 10 in length, then remove this one
+            len_index[i] = np.sqrt((index_list[i][0][0] - index_list[i][1][0] )**2 + (index_list[i][0][1] - index_list[i][1][1] )**2 )
+            for j in range(len(posx)):
+                index1[j] = np.sqrt((index_list[i][0][0] - posx[j] )**2 + (index_list[i][0][1] - posy[j] )**2 )
+                index2[j] = np.sqrt((index_list[i][1][0] - posx[j] )**2 + (index_list[i][1][1] - posy[j] )**2 )
+            argm1 = np.argmin(index1)
+            argm2 = np.argmin(index2)
+            correct_pos1[i] = list((posx[argm1],posy[argm1]))
+            nodenum1[i] = argm1
+            correct_pos2[i] = list((posx[argm2],posy[argm2]))
+            nodenum2[i] = argm2
     
-    df = df[df[2].isin(np.unique(mask))]
-    df = df.reset_index(drop=True)
-    vals = np.unique(df[2])
-    delete_row= []
-    ss = df.duplicated(subset=[5,7], keep=False)
-    index_ss = ss[ss].index
-    delete_df = []
-    for i in index_ss:
-        smallM = []
-        indexM = []
-        df_sub = df.loc[(df[5] == df[5].iloc[i]) & (df[7]==df[7].iloc[i])]
-        #find smallest value
-        for l in range(len(df_sub)):
-            smallM.append(np.sum(mask==df_sub[2].iloc[l]))
-            indexM.append(df_sub[2].iloc[l])
-        argM = np.argmin(smallM)
-        delete_df.append(df_sub[df_sub[2]==indexM[argM]].index[0])
-    delI = np.unique(delete_df)
-    df = df.drop(delI)   
-    df = df.reset_index(drop=True)    
-
-    df = df.drop(delete_row)
-    df = df.reset_index(drop=True)
-    index_remove = list(np.where(df[4]==df[6])[0])
-    df = df.drop(index_remove,axis='index')   
-    df = df.reset_index(drop=True)
-    df_new = df.rename(columns={0: "old pos1", 1: "old pos2", 2: "map value", 3: "distance between pos", 4: "new pos1", 5: "node pos1", 6: "new pos2", 7: "node pos2"})
+        index_pd = pd.DataFrame(index_list)
+        index_pd[3] = len_index
+        index_pd[4] = correct_pos1
+        index_pd[5] = nodenum1
+        index_pd[6] = correct_pos2
+        index_pd[7] = nodenum2
+        #df = index_pd[index_pd[3] > size]
+        df= index_pd
+        
+        df = df[df[2].isin(np.unique(mask))]
+        df = df.reset_index(drop=True)
+        vals = np.unique(df[2])
+        delete_row= []
+        ss = df.duplicated(subset=[5,7], keep=False)
+        index_ss = ss[ss].index
+        delete_df = []
+        for i in index_ss:
+            smallM = []
+            indexM = []
+            df_sub = df.loc[(df[5] == df[5].iloc[i]) & (df[7]==df[7].iloc[i])]
+            #find smallest value
+            for l in range(len(df_sub)):
+                smallM.append(np.sum(mask==df_sub[2].iloc[l]))
+                indexM.append(df_sub[2].iloc[l])
+            argM = np.argmin(smallM)
+            delete_df.append(df_sub[df_sub[2]==indexM[argM]].index[0])
+        delI = np.unique(delete_df)
+        df = df.drop(delI)   
+        df = df.reset_index(drop=True)    
+    
+        df = df.drop(delete_row)
+        df = df.reset_index(drop=True)
+        index_remove = list(np.where(df[4]==df[6])[0])
+        df = df.drop(index_remove,axis='index')   
+        df = df.reset_index(drop=True)
+        df_new = df.rename(columns={0: "old pos1", 1: "old pos2", 2: "map value", 3: "distance between pos", 4: "new pos1", 5: "node pos1", 6: "new pos2", 7: "node pos2"})
     return df_new
 
 def node_condense(imageFiltered,imageSkeleton,kernel):
@@ -1236,13 +1240,26 @@ def creategraph(image,size,eps,thresh_top,sigma,small):
 
     imgAF,imgBl,mask,df_pos = node_graph(imE,imA,size,eps)
     
-    gBo,pos = make_graph_mask(imgAF,imG,mask,df_pos)
-    
-    gBu = unify_graph(gBo) 
-    
-    gBuC = test_connectivity(gBu)
-    
+    if(len(df_pos)==0):
+        print('the image does not contain filamentous structures, or parameters need tuning.')
+        gBuC=0
+        pos=0
+        imA=0
+        imgAF=0
+        imgBl=0
+        imF=0
+        mask=0
+        df_pos=0
+    else:
+        
+        gBo,pos = make_graph_mask(imgAF,imG,mask,df_pos)
+        
+        gBu = unify_graph(gBo) 
+        
+        gBuC = test_connectivity(gBu)
+        
     return gBuC,pos,imA,imgAF,imgBl,imF,mask,df_pos
+
 
 ###############################################################################
 #
