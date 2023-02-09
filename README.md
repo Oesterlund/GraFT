@@ -57,6 +57,9 @@ image_new = image - background
 Instead of the cleaned image data with FIJI. This function is not the same as the FIJI rolling ball function, however quite similar. We found that the FIJI version performs best.
 FIJI can be installed from the webpage [FIJI](https://imagej.net/software/fiji/)
 
+You should now have a mask for your cell, and a cleaned version of your image data saved in your chosen directory.
+You are now ready to use GraFT on your data!
+
 ## Getting started
 In the folder GraFT you will find two scirpts and additional folders, download the main folder.
 The two scripts utilsF.py and run.py is the code.  
