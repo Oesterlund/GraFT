@@ -46,6 +46,16 @@ conda install plotly==5.11.0
 conda install astropy==5.1
 ```
 
+## Data
+Creating a mask is normally done using free hand drawing in FIJI, where the chosen area is filled with fill and divided by the value inside and background is removed by clear outside. This mask can then be saved in the folder with the data.
+The image data is initially cleaned by rolling ball (radius=50) function with FIJI to remove unwanted background that would create a line when mask and image data is multiplied. In case one does not want to use FIJI, the python function skimage.restoration.rolling_ball can be used, and implemented like this:
+```
+import skimage restoration
+background = restoration.rolling_ball(image,radius=50)
+image_new = image - background
+```
+Instead of the cleaned image data with FIJI. This function is not the same as the FIJI rolling ball function, however quite similar. We found that the FIJI version performs best.
+
 ## Getting started
 In the folder GraFT you will find two scirpts and additional folders, download the main folder.
 The two scripts utilsF.py and run.py is the code.  
