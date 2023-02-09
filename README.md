@@ -12,7 +12,7 @@ Here, we propose an automated, open-source and image-based algorithm named Graph
 
 Importantly, GraFT can be used to determine and compare properties of filamentous structures in time-resolved image-data across different cell types as well as other filament-based systems; sparse or dense. Therefore, GraFT offers a substantial step towards an automated framework facilitating robust spatiotemporal studies of the actin cytoskeleton in cells. 
 
-# Workflow/Documentation
+# Documentation
 
 ## Dependencies
 The method was written in Python 3.8 and is dependent on the libraries mentioned below.
@@ -45,6 +45,8 @@ conda install simplification==0.6.2
 conda install plotly==5.11.0
 conda install astropy==5.1
 ```
+
+# Workflow
 
 ## Data
 Creating a mask is normally done using free hand drawing in FIJI, where the chosen area is filled with fill and divided by the value inside and background is removed by clear outside. This mask can then be saved in the folder with the data.
