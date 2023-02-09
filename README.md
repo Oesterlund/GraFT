@@ -55,6 +55,7 @@ background = restoration.rolling_ball(image,radius=50)
 image_new = image - background
 ```
 Instead of the cleaned image data with FIJI. This function is not the same as the FIJI rolling ball function, however quite similar. We found that the FIJI version performs best.
+FIJI can be installed from the webpage [FIJI](https://imagej.net/software/fiji/)
 
 ## Getting started
 In the folder GraFT you will find two scirpts and additional folders, download the main folder.
