@@ -1,8 +1,9 @@
 # Article information of data & scripts
 
 ## Data
-The data is shared through Zenodo, 
-In the folder data/ there are 5 subfolders, one for the Latrunculin B data, it contains two subfolders dark and light. And then three folders for virulence factor (VF) treatment; DMSO, DSF and flg22. The last folder is seedling position data.
+The data is shared through Zenodo, with DOI: 10.5281/zenodo.10476058
+
+On Zenodo there are 5 zipped folders, one for the Latrunculin B data, LatB, it contains two subfolders dark and light. And then three folders for virulence factor (VF) treatment; DMSO, DSF and flg22. The last folder is seedling position data, seedling_pos.
 
 The time-series dataset of 5-day old seedlings of Arabidopsis Thaliana with the green marker line mNeonGreen-FABD2 on actin-cytoskeleton. The seedlings are imaged at three different locations along the stem, upper (young cells), midlle (expanding cells) and at the bottom (mature cells) close to the root start. The seedlings wher imaged using an inverted 3i Marianas Spinning Disk confocal microscope using a 60X objective. The resolution is 0.217 micrometers with 1 sec. intervals.
 
