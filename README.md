@@ -91,8 +91,18 @@ create_all_still(pathsave = "/your_directory_path_here/",
 ```
 Remember to change the parameters according to your image data.
 
+## Real data
+In the folder Article/ image data from the article is placed together with code used for data generation and data processing.
+The data consists time-series data of Arabidopsis Thaliana, specifically:
+- etiolated seedlings, imaged at three different locations along the stem
+- seedlings treated with Latrinculin B etiolated and light grown
+- Seedlings treated with virulence factors; DSF and flg22
+In this folder you can also find the scripts used fort data generation and processing. If you want to use them, remember to change the folder names accordingly.
+
+
 # References
-refeer to paper here
+The article for this algorithm is yet to be published. The article will be here to cite when it is out.
+If you used this work, please remember to cite it.
 
 # Licence
 This project is licensed under the terms of the MIT license.
