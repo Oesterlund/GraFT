@@ -70,7 +70,7 @@ All import lines must be changed to the correct location on your computer, both 
 Run the function you wish, either create_all or create_all_still, and folders will be created in the directory location you defined with figures and datafile.
 The folders contain the created figures and csv file of the outputs.
 
-There are two main functions, one for timeseries image-data, and one for image-data without time.  
+There are two main functions, one for timeseries image-data, and one for still image-data.  
 The function for timeseries data is:
 ```
 img_o = io.imread("/your_directory_path_here/your_image_file")
