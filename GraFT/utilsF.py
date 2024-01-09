@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Mon Oct  3 13:19:16 2022
+Created on Fri Mar 24 13:29:36 2023
 
 @author: pgf840
 """
@@ -25,7 +25,7 @@ import matplotlib.cm as cmx
 import astropy.stats
 import plotly.graph_objects as go
 from astropy import units as u
-
+from skspatial.objects import Line, Point
 
 ###############################################################################
 #
@@ -2060,6 +2060,45 @@ def draw_graph_filament_nocolor(image,graph,pos,title,value):
     plt.tight_layout()
     return
 
+
+def draw_graph_filament_nocolor_r(image,graph,pos,title,value):
+    '''
+    drawing function
+
+    Parameters
+    ----------
+    image : TYPE
+        DESCRIPTION.
+    graph : TYPE
+        DESCRIPTION.
+    pos : TYPE
+        DESCRIPTION.
+    title : TYPE
+        DESCRIPTION.
+    value : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    saved image
+
+    '''
+    edges,values = zip(*nx.get_edge_attributes(graph,value).items())
+    plt.figure(figsize=(8,10))
+    plt.title(title)
+    plt.imshow(image,cmap='gray_r')
+    vmin=min(values)
+    vmax=max(values)+1
+    if(vmax%2==0):
+        vmax +=1
+    cmap=plt.get_cmap('tab20',vmax)
+    nx.draw(graph,pos, edge_cmap=cmap, edge_color=values,node_size=0.7,width=3,alpha=0.5)
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=plt.Normalize(vmin = vmin, vmax=vmax))
+    sm._A = []
+    #plt.colorbar(sm,orientation='horizontal')
+    plt.tight_layout()
+    return
+
 def draw_graph_filament_nocolor_size(image,graph,pos,title,value,size):
     '''
     drawing function with size of window
@@ -2359,6 +2398,8 @@ def filament_info_time(img_o, g_tagged, posL, path,imF,maskDraw):
             fullC[l] = fullI[l]/fullL[l]
             #rod length over filament length
             fullBL[l] = nodeD[l]/fullL[l]
+            if(fullBL[l]>1):
+                fullBL[l]=1
             #angle from major cell axis
             edge_ang = angle_majorCell(nodesSE[l],posL[m],vec_mask)
             tags[l] = i 
@@ -2479,6 +2520,88 @@ def filament_info(img_o, graphTagg, posL, path,imF,maskDraw):
     
     return FullfilInfo
 
+
+def filament_info_no(img_o, graphTagg, posL, path,imF,maskDraw,no):
+    '''
+    creation of dataframe to be saved as csv of all filament info of traced filaments
+
+    Parameters
+    ----------
+    img_o : array
+        array of raw image timeseries.
+    graphTagg : nx graph
+        list of traced graph.
+    posL : list
+        list of list of node positions.
+    path : directory path
+        path to save file.
+    imF : arrray
+        skeletonized image.
+    maskDraw : array
+        binary mask of cell.
+
+    Returns
+    -------
+    FullfilInfo : dataframe
+        dataframe containing all the data-image information.
+    '''
+
+    FullfilInfo = pd.DataFrame()
+
+
+    filamentTags = np.unique(np.asarray(list(graphTagg.edges(data='filament')))[:,2])
+    filInfo = pd.DataFrame()
+    filamentT = nx.to_pandas_edgelist(graphTagg)
+    nodesSE = pos_filament(graphTagg,posL)
+    fullL = np.zeros(len(filamentTags))
+    nodeD = np.zeros(len(filamentTags))
+    fullI = np.zeros(len(filamentTags))
+    fullC = np.zeros(len(filamentTags))
+    fullBL = np.zeros(len(filamentTags))
+    fullE = np.zeros(len(filamentTags))
+    fullEd = np.zeros(len(filamentTags))
+    fullDe = np.ones(len(filamentTags))
+    tags = np.ones(len(filamentTags))
+    vec_mask = mask2rot(maskDraw)
+    #in case its a perfect square
+    if(all(vec_mask==[0,0])):
+        vec_mask=[1,0]
+    for i,l in zip(filamentTags,range(len(filamentTags))):
+        #filament length
+        fullL[l] = np.sum(filamentT['fdist'][filamentT['filament']==i])
+        fullE[l] = np.sum(filamentT['edist'][filamentT['filament']==i])
+        #node distance
+        nodeD[l] = np.linalg.norm(posL[int(nodesSE[l][0])]-posL[int(nodesSE[l][1])])
+        #filament intensity
+        fullI[l] = np.sum(filamentT['weight'][filamentT['filament']==i])
+        #filament intensity by filament length
+        fullC[l] = fullI[l]/fullL[l]
+        #rod length over filament length
+        fullBL[l] = nodeD[l]/fullL[l]
+        #angle from major cell axis
+        edge_ang = angle_majorCell(nodesSE[l],posL,vec_mask)
+        tags[l] = i 
+        fullEd[l] = edge_ang #min(edge_ang,np.abs(edge_ang-180))
+        # density:
+    fullDe = fullDe*np.sum(imF*1)/(np.sum(maskDraw))
+        
+    
+    filInfo['filament'] = tags
+    filInfo['filament length'] = fullL
+    filInfo['filament edist'] = fullE
+    filInfo['filament rod length'] = nodeD
+    filInfo['filament intensity'] = fullI
+    filInfo['filament intensity per length'] = fullC
+    filInfo['filament bendiness'] = fullBL
+    filInfo['filament angle'] = fullEd
+    filInfo['filament density'] = fullDe
+    
+    FullfilInfo = filInfo
+        
+    FullfilInfo.to_csv(path+no+'traced_filaments_info.csv',index=False)
+    
+    return FullfilInfo
+
 def circ_stat_plot(path,pd_fil_info):
     '''
     calculate circular statitstics and return mean circular angle and variance and save all figures
@@ -2571,3 +2694,210 @@ def circ_stat(pd_fil_info,path):
     name180 = "circ_stat/stat.png"
     barplot180(list_ec,bins180,path,name180,color_code='#0000FF')
     return mean_angle,var_val
+
+def pos_tagged_filament(graph,pos,l):
+
+    #find start/end nodes in filaments
+    nodesF = np.asarray([(a,b) for a,b, attrs in graph.edges(data=True) if (attrs["tags"] == l)]).flatten()
+    countN = np.asarray(list(Counter(nodesF).items()))
+    nodeES = [val for is_good, val in zip(countN[:,1]==1, countN[:,0]) if is_good]
+
+    
+    if(len(nodeES)==0):
+        nodesF = np.asarray([(a,b) for a,b, attrs in graph.edges(data=True) if ((attrs["filament dangling"] == 1) and (attrs["tags"] == l))]).flatten()
+        countN = np.asarray(list(Counter(nodesF).items()))
+        nodeES = [val for is_good, val in zip(countN[:,1]==2, countN[:,0]) if is_good]
+        if(len(nodeES)==0):
+            #circle, and is emtpy
+            nodeES = [nodesF[0]]
+        nodeS1 = nodeES[0]
+        nodeE1 = nodeES[0]
+    elif(len(nodeES)==1):
+        nodeS1 = nodeES[0]
+        nodeE1 = nodeES[0]
+    else:
+        nodeS1 = nodeES[0]
+        nodeE1 = nodeES[1]
+        
+    posF = nodeS1,nodeE1
+    return posF
+
+def calc_dist_end(SE_1,SE_2,posL,m1,m2):
+    nodeS1,nodeE1 = int(SE_1[0]),int(SE_1[1])
+    nodeS2,nodeE2 = int(SE_2[0]),int(SE_2[1])
+    dist1 = np.linalg.norm(posL[m1][nodeS1]-posL[m2][nodeS2])
+    dist11 = np.linalg.norm(posL[m1][nodeS1]-posL[m2][nodeE2])
+    dist2 = np.linalg.norm(posL[m1][nodeE1]-posL[m2][nodeE2])
+    dist22 = np.linalg.norm(posL[m1][nodeE1]-posL[m2][nodeS2])
+    distS = dist11
+    distE = dist22
+    if(dist1<=dist11):
+        distS=dist1
+    if(dist2<=dist22):
+        distE=dist2
+    return distS,distE
+
+def angle_move(fullTrack,pd_fil_info):
+    pd_angle = pd.DataFrame()
+    mAL_allA =[]
+    mAL_allT =[]
+    mAL_allF =[]
+    for l in range(0,int(np.max(fullTrack['filament tag']))+1):
+        angle_fil = pd_fil_info['filament angle'][pd_fil_info['filament']==l].values
+        frame_fil = pd_fil_info['frame number'][pd_fil_info['filament']==l].values
+        mAL=np.zeros((len(angle_fil)-1,3))
+        for m in range(len(angle_fil)-1):
+            mAL[m,0] = angle_fil[m]-angle_fil[m+1]
+            mAL[m,1] = l
+            mAL[m,2] = frame_fil[m+1]
+        mAL_allA = np.append(mAL_allA,mAL[:,0])
+        mAL_allT = np.append(mAL_allT,mAL[:,1])
+        mAL_allF = np.append(mAL_allF,mAL[:,2])
+        
+    pd_angle['filament tag'] = mAL_allT
+    pd_angle['change angle'] = mAL_allA
+    pd_angle['frame'] = mAL_allF
+            
+    result = pd.merge(fullTrack, pd_angle,on=['filament tag','frame'])
+    return result
+
+def track_move(g_tagged,posL,img_o,memKeep, max_cost,path,pd_fil_info):
+    fil_keep=[]
+    fullTrack = pd.DataFrame()
+    #do it for many frames here
+    for y in range(len(img_o)-1):
+        frameTrack = pd.DataFrame()
+        #find unique tags for current and next frame
+        tags = np.unique(np.asarray(list(g_tagged[y].edges(data='tags')))[:,2])
+        tags2 = np.unique(np.asarray(list(g_tagged[y+1].edges(data='tags')))[:,2])
+        
+        tagsM = []
+        trackMean = []
+        trackMax = []
+        if(len(fil_keep)>0):
+            rem_index = []
+            for n in range(len(fil_keep)):
+                
+                save_index=[]
+                if(y-fil_keep[n][0]>=memKeep):
+                    save_index.append(n)
+                    #filamentsNU.pop(i)
+                
+                #fil_keep[n][0]+=1
+            fil_keep = [i for j, i in enumerate(fil_keep) if j not in save_index]
+            #run this for the kept filaments
+            for s in range(len(fil_keep)):
+                indexFil = fil_keep[s][1]
+                if(indexFil in tags2):
+                    
+                    tagsM.append(indexFil)
+                    distP=[]
+                    SE_1 = fil_keep[s][2]
+                    SE_2 = pos_tagged_filament(g_tagged[y+1],posL[y+1],indexFil)
+                    distS,distE = calc_dist_end(SE_1,SE_2,posL,fil_keep[s][0],y+1)
+                    distP.append(distS)
+                    distP.append(distE)
+                    #remove it again
+                    rem_index.append(s)
+                    
+                    #nodes from the filament at time t
+                    nodes = fil_keep[s][-1]
+                    # edges for the filament matched in time t+1
+                    edges2 = [(u,v) for u,v,e in g_tagged[y+1].edges(data=True) if e['tags'] == indexFil] 
+                    
+                    
+                    for m in range(len(nodes)):
+                        m_switch=0
+                        on=0
+                        for k in range(len(edges2)):
+                            if(m_switch==0):
+                        
+                                point1 = Point(posL[fil_keep[s][0]][nodes[m]])
+                                if((posL[fil_keep[s][0]][nodes[m]]==posL[y+1][edges2[k][0]]).all() or (posL[fil_keep[s][0]][nodes[m]]==posL[y+1][edges2[k][1]]).all()):
+                                    #print('they are the same', m,k)
+                                    m_switch=1
+                                    on=0
+                                else:
+                                    line2 = Line.from_points(posL[y+1][edges2[k][0]],posL[y+1][edges2[k][1]])
+                                    
+                                    point_projected = line2.project_point(point1)
+                                    if((point_projected!=point1).all()):
+                                
+                                        lineT = [posL[y+1][edges2[k][0]],posL[y+1][edges2[k][1]]]
+                                        if((np.abs(lineT[1]-lineT[0]) == np.abs(lineT[1]-point_projected) + np.abs(lineT[0]-point_projected)).all()):
+                                            #print("it is lying on the line!",m, k)
+                                            #distP.append(np.linalg.norm(point1-point_projected))
+                                            keepM = np.linalg.norm(point1-point_projected)
+                                            if(keepM<max_cost):
+                                                on=1
+                        if((m_switch==0) and (on==1)):
+                            distP.append(keepM)
+    
+                    trackMean.append(np.mean(distP))
+                    trackMax.append(np.max(distP))
+            #remove
+            fil_keep = [i for j, i in enumerate(fil_keep) if j not in rem_index]
+     
+        for l in tags:
+            if(l in tags2):
+                tagsM.append(l)
+                
+                distP=[]
+                SE_1 = pos_tagged_filament(g_tagged[y],posL[y],l)
+                SE_2 = pos_tagged_filament(g_tagged[y+1],posL[y+1],l)
+                distS,distE = calc_dist_end(SE_1,SE_2,posL,y,y+1)
+                distP.append(distS)
+                distP.append(distE)
+                
+                #nodes from the filament at time t
+                edges = [(u,v) for u,v,e in g_tagged[y].edges(data=True) if e['tags'] == l] 
+                nodes = np.unique(np.asarray(edges).flatten())
+                # edges for the filament matched in time t+1
+                edges2 = [(u,v) for u,v,e in g_tagged[y+1].edges(data=True) if e['tags'] == l] 
+    
+                for m in range(len(nodes)):
+                    m_switch=0
+                    on=0
+                    for k in range(len(edges2)):
+                        if(m_switch==0):
+                    
+                            point1 = Point(posL[y][nodes[m]])
+                            if((posL[y][nodes[m]]==posL[y+1][edges2[k][0]]).all() or (posL[y][nodes[m]]==posL[y+1][edges2[k][1]]).all()):
+                                #print('they are the same', m,k)
+                                m_switch=1
+                            else:
+                                line2 = Line.from_points(posL[y+1][edges2[k][0]],posL[y+1][edges2[k][1]])
+                                
+                                point_projected = line2.project_point(point1)
+                                if((point_projected!=point1).all()):
+                            
+                                    lineT = [posL[y+1][edges2[k][0]],posL[y+1][edges2[k][1]]]
+                                    #check if the point is lying on the line created by the edge, if yes save
+                                    if((np.abs(lineT[1]-lineT[0]) == np.abs(lineT[1]-point_projected) + np.abs(lineT[0]-point_projected)).all()):
+                                        #must keep it in memory, in case two lines will be overlaying
+                                        keepM = np.linalg.norm(point1-point_projected)
+                                        #distP.append(np.linalg.norm(point1-point_projected))
+                                        if(keepM<max_cost):
+                                            on=1
+                    if((m_switch==0) and (on==1)):
+                        distP.append(keepM)
+    
+                trackMean.append(np.mean(distP))
+                trackMax.append(np.max(distP))
+                
+            else:
+                #we need to save this filament to check distance in next frame if exists.
+                SE_1 = pos_tagged_filament(g_tagged[y],posL[y],l)
+                edges = [(u,v) for u,v,e in g_tagged[y].edges(data=True) if e['tags'] == l] 
+                nodes = np.unique(np.asarray(edges).flatten())
+                fil_keep.append([y,l,SE_1,nodes])
+                
+        frameTrack['filament tag'] = tagsM
+        frameTrack['mean move'] = trackMean
+        frameTrack['max move'] = trackMax
+        frameTrack['frame'] = y+1
+        #concat the pandas together
+        fullTrack = pd.concat(([fullTrack,frameTrack]),ignore_index=True)
+    pd_full = angle_move(fullTrack,pd_fil_info)
+    pd_full.to_csv(path+'tracked_move.csv',index=False)
+    return pd_full
