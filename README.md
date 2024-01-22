@@ -10,7 +10,8 @@ This tool is designed for identification and tracking of filamentous structures 
 The cytoskeleton supports essential cellular functions. In plant cells, microtubules guide cellulose synthesis and act as possible tensile stress sensors, whereas the actin cytoskeleton provides the basis for secretion and cytoplasmic streaming. While microtubule dynamics are evaluated by standardized image analysis tools, similar details of the actin cytoskeleton remains difficult to compute. This is largely due to the complex dynamics of actin filaments and bundles. Hence, new frameworks and tools to quantify and understand spatiotemporal behavior of the actin cytoskeleton is urgently needed to address cytoskeletal complexity in plant cells.
 Here, we propose an automated, open-source and image-based algorithm named Graph of Filaments over Time, GraFT, that: (1) builds a network-based representation of segmented and enhanced filament-like structures based on pre-processed confocal images of plant cells; (2) identifies individual filaments by untangling the network representation. Here, individual filaments are defined based on the longest paths in a constrained depth first search, accounting for angles along the path. The untangling is modeled as a path cover, in which we allow overlap between filaments; (3) tracks filaments over time by solving a linear assignment problem using the information of spatial location of each individual filament. 
 
-Importantly, GraFT can be used to determine and compare properties of filamentous structures in time-resolved image-data across different cell types as well as other filament-based systems; sparse or dense. Therefore, GraFT offers a substantial step towards an automated framework facilitating robust spatiotemporal studies of the actin cytoskeleton in cells. 
+## Overview
+GraFT can be used to determine and compare properties of filamentous structures in time-resolved image-data across different cell types as well as other filament-based systems; sparse or dense. Therefore, GraFT offers a substantial step towards an automated framework facilitating robust spatiotemporal studies of the actin cytoskeleton in cells. 
 
 The tool can perform identifcation on still image-data, and identification with tracking on time-series image data. The method can also be used to only preprocess and binarize, if the density of an image is only needed.
 
@@ -29,11 +30,12 @@ Current libraries with versions was used to build the code:
 - plotly 5.11.0
 - astropy 5.1
 - pickle 4.0
+- scikit-spatial 6.8.0
 
 I recommend creating a new python environment using conda and activate it to install dependencies
 ```
-conda create -n CDFS python
-conda activate CDFS
+conda create -n cdfs python
+conda activate cdfs
 ```
 And install the dependencies with either pip or conda
 ```
@@ -46,7 +48,9 @@ conda install matplotlib==3.5.1
 conda install simplification==0.6.2
 conda install plotly==5.11.0
 conda install astropy==5.1
+conda install scikit-spatial==6.8.0
 ```
+Installation time does not take long, I recomend working with a GUI like [Anaconda-Navigator](https://docs.anaconda.com/free/navigator/index.html), which contains the IDE [Spyder](https://docs.anaconda.com/free/anaconda/ide-tutorials/spyder/).
 
 # Workflow
 
@@ -93,18 +97,23 @@ create_all_still(pathsave = "/your_directory_path_here/",
 ```
 Remember to change the parameters according to your image data.
 
+## Versions this code has been tested on
+This code has been tested and run on ubuntu 22.04 as well as macOS Ventura.
+To install this on your own computer I recomend setting up a new Python environment for the dependencies, which should not take more than 10 min.
+Runing the full example script run.py in the folder GraFT/GraFT/ takes less than 5 mins on ubuntu 22.04.
+
 ## Real data
-In the folder Article/ image data from the article is placed together with code used for data generation and data processing.
+On the data page Zenodo (DOI: 10.5281/zenodo.10476058) you can find the raw image-data used for data generation and data processing.
 The data consists time-series data of Arabidopsis Thaliana, specifically:
 - etiolated seedlings, imaged at three different locations along the stem
 - seedlings treated with Latrunculin B etiolated and light-grown
 - seedlings treated with virulence factors; DSF and flg22
-In this folder you can also find the scripts used fort data generation and processing. If you want to use them, remember to change the folder names accordingly.
+In the folder GraFT/Article/code/ you can find the scripts used fort data generation and processing. If you want to use them, remember to change path and file names accordingly.
 
 
 # References
 The article for this algorithm is yet to be published. The article will be here to cite when it is out.
-If you used this work, please remember to cite it.
+If you used this work, or found it helpful for your own work, please remember to cite it.
 
 # Licence
 This project is licensed under the terms of the MIT license.
