@@ -1,5 +1,5 @@
 NetworkX==2.8.4
-scikit-image 0.19.3
+scikit-image==0.19.3
 scipy==1.9.3
 pandas==1.4.4
 numpy==1.23.5
