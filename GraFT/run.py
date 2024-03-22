@@ -15,12 +15,15 @@ import pandas as pd
 from collections import Counter
 import pickle
 
-path="/Users/pgf840/Documents/PLEN/tracking-filaments/dfs/GraFT"
-os.chdir(path)
+
+# Get the directory containing this script.
+base_path = os.path.dirname(os.path.abspath(__file__))
+
+os.chdir(base_path)
 
 import utilsF
 
-pathsave = "/Users/pgf840/Documents/PLEN/tracking-filaments/dfs/GraFT/"
+pathsave = base_path + "/"
 
 plt.close('all')
 
@@ -324,9 +327,9 @@ def create_all_still(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,ang
 ######################
 # timeseries
 
-img_o = io.imread("/Users/pgf840/Documents/PLEN/tracking-filaments/dfs/GraFT/tiff/timeseries.tif")
+img_o = io.imread(os.path.join(base_path, "tiff", "timeseries.tif"))
 maskDraw = np.ones((img_o.shape[1:3]))
-create_all(pathsave = "/Users/pgf840/Documents/PLEN/tracking-filaments/dfs/GraFT/timeseries/",
+create_all(pathsave=os.path.join(base_path, "timeseries/"),
            img_o=img_o,
            maskDraw=maskDraw,
            size=6,eps=200,thresh_top=0.5,sigma=sigma,small=small,angleA=140,overlap=4,max_cost=100,
@@ -335,10 +338,10 @@ create_all(pathsave = "/Users/pgf840/Documents/PLEN/tracking-filaments/dfs/GraFT
 ######################
 # one image
 
-img = io.imread("/Users/pgf840/Documents/PLEN/tracking-filaments/dfs/GraFT/tiff/timeseries.tif")
+img = io.imread(os.path.join(base_path, "tiff", "timeseries.tif"))
 img_still = img_o[0]
 maskDraw = np.ones((img.shape[1:3]))
-create_all_still(pathsave = "/Users/pgf840/Documents/PLEN/tracking-filaments/dfs/GraFT/still/",
+create_all_still(pathsave=os.path.join(base_path, "still/"),
            img_o=img_still,
            maskDraw=maskDraw,
            size=6,eps=200,thresh_top=0.5,sigma=sigma,small=small,angleA=140,overlap=4,
