@@ -8,3 +8,4 @@ simplification==0.6.2
 plotly==5.11.0
 astropy==5.1
 Scikit-spatial==6.8.0
+kaleido==0.2.1
