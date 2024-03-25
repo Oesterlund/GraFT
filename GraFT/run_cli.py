@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+
 """
-Enhanced run.py script for GraFT with CLI support.
+Commandline interface for GraFT.
 """
 
 import argparse
 import os
 import skimage.io as io
-
 from run import create_all, create_all_still
 
-# Constants for default values as specified in README
+
+# Constants for default values
 DEFAULT_SIZE = 6
 DEFAULT_EPS = 200
 DEFAULT_THRESH_TOP = 0.5
@@ -20,63 +21,76 @@ DEFAULT_ANGLEA = 140
 DEFAULT_OVERLAP = 4
 DEFAULT_MAX_COST = 100
 
+
+def generate_default_mask(image_shape):
+    """Generate a default mask of ones based on the image shape."""
+    # for timeseries images with shape (frames, height, width)
+    if len(image_shape) == 3:
+        return np.ones(image_shape[1:])
+    # for still images with shape (height, width)
+    return np.ones(image_shape)
+
 def main():
     parser = argparse.ArgumentParser(description="GraFT: Graph of Filaments over Time")
     subparsers = parser.add_subparsers(help='commands', dest='command')
 
-    # Subparser for timeseries analysis
-    timeseries_parser = subparsers.add_parser('timeseries', help='Analyze timeseries image data')
-    timeseries_parser.add_argument('image_path', type=str, help='Path to the input image file')
-    timeseries_parser.add_argument('mask_path', type=str, help='Path to the mask file')
-    timeseries_parser.add_argument('output_dir', type=str, help='Path to the output directory')
-    # Optional arguments
-    timeseries_parser.add_argument('--size', type=int, default=DEFAULT_SIZE, help='Size parameter (default: 6)')
-    timeseries_parser.add_argument('--eps', type=int, default=DEFAULT_EPS, help='EPS parameter (default: 200)')
-    # Add other optional parameters here as needed
-
-    # Subparser for still image analysis
-    still_parser = subparsers.add_parser('still', help='Analyze still image data')
-    still_parser.add_argument('image_path', type=str, help='Path to the input image file')
-    still_parser.add_argument('mask_path', type=str, help='Path to the mask file')
-    still_parser.add_argument('output_dir', type=str, help='Path to the output directory')
-    # Optional arguments
-    still_parser.add_argument('--size', type=int, default=DEFAULT_SIZE, help='Size parameter (default: 6)')
-    # Add other optional parameters for still image analysis
+    # common arguments for both subparsers
+    for subparser in ['timeseries', 'still']:
+        parser_sp = subparsers.add_parser(subparser, help=f'Analyze {subparser} image data')
+        parser_sp.add_argument('image_path', type=str, help='Path to the input image file')
+        parser_sp.add_argument('--mask_path', type=str, help='Optional path to the mask file. If omitted, a default mask is used.')
+        parser_sp.add_argument('output_dir', type=str, help='Path to the output directory')
+        
+        # optional arguments shared between timeseries and still
+        parser_sp.add_argument('--size', type=int, default=DEFAULT_SIZE, help='Size parameter')
+        parser_sp.add_argument('--eps', type=int, default=DEFAULT_EPS, help='EPS parameter')
+        parser_sp.add_argument('--thresh_top', type=float, default=DEFAULT_THRESH_TOP, help='Threshold top parameter')
+        parser_sp.add_argument('--sigma', type=float, default=DEFAULT_SIGMA, help='Sigma parameter for tubeness filter width')
+        parser_sp.add_argument('--small', type=int, default=DEFAULT_SMALL, help='Small parameter for cluster removal')
+        parser_sp.add_argument('--angleA', type=int, default=DEFAULT_ANGLEA, help='AngleA parameter')
+        parser_sp.add_argument('--overlap', type=int, default=DEFAULT_OVERLAP, help='Overlap parameter')
+        
+        if subparser == 'timeseries':
+            parser_sp.add_argument('--max_cost', type=int, default=DEFAULT_MAX_COST, help='Max cost parameter for tracking')
 
     args = parser.parse_args()
 
-    if args.command == 'timeseries':
-        img_o = io.imread(args.image_path)
+    img_o = io.imread(args.image_path)
+    if args.mask_path:
         maskDraw = io.imread(args.mask_path)
+    else:
+        maskDraw = generate_default_mask(img_o.shape)
+
+    if args.command == 'timeseries':
         create_all(pathsave=args.output_dir,
                    img_o=img_o,
                    maskDraw=maskDraw,
                    size=args.size,
                    eps=args.eps,
-                   thresh_top=DEFAULT_THRESH_TOP,
-                   sigma=DEFAULT_SIGMA,
-                   small=DEFAULT_SMALL,
-                   angleA=DEFAULT_ANGLEA,
-                   overlap=DEFAULT_OVERLAP,
-                   max_cost=DEFAULT_MAX_COST,
+                   thresh_top=args.thresh_top,
+                   sigma=args.sigma,
+                   small=args.small,
+                   angleA=args.angleA,
+                   overlap=args.overlap,
+                   max_cost=args.max_cost,
                    name_cell='timeseries_analysis')
+
     elif args.command == 'still':
-        img_o = io.imread(args.image_path)
-        maskDraw = io.imread(args.mask_path)
         create_all_still(pathsave=args.output_dir,
                          img_o=img_o,
                          maskDraw=maskDraw,
                          size=args.size,
                          eps=args.eps,
-                         thresh_top=DEFAULT_THRESH_TOP,
-                         sigma=DEFAULT_SIGMA,
-                         small=DEFAULT_SMALL,
-                         angleA=DEFAULT_ANGLEA,
-                         overlap=DEFAULT_OVERLAP,
+                         thresh_top=args.thresh_top,
+                         sigma=args.sigma,
+                         small=args.small,
+                         angleA=args.angleA,
+                         overlap=args.overlap,
                          name_cell='still_image_analysis')
+
     else:
         parser.print_help()
 
+
 if __name__ == "__main__":
     main()
-
