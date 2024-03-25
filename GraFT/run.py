@@ -19,8 +19,6 @@ import pickle
 # Get the directory containing this script.
 base_path = os.path.dirname(os.path.abspath(__file__))
 
-os.chdir(base_path)
-
 import utilsF
 
 pathsave = base_path + "/"
