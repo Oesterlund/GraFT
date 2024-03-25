@@ -57,15 +57,23 @@ def main():
             parser_sp.add_argument('--max_cost', type=int, default=DEFAULT_MAX_COST, help='Max cost parameter for tracking')
 
     args = parser.parse_args()
+    
+    # Check if a command (subcommand) has been chosen. If not, display help and exit.
+    if args.command is None:
+        parser.print_help()
+        parser.exit()
 
-    img_o = io.imread(args.image_path)
+    img_o = io.imread(os.path.abspath(args.image_path))
+
     if args.mask_path:
-        maskDraw = io.imread(args.mask_path)
+        maskDraw = io.imread(os.path.abspath(args.mask_path))
     else:
         maskDraw = generate_default_mask(img_o.shape)
 
+    # TODO: pathsave parameter needs to have a trailing '/' (better: fix create_all(_still))
+
     if args.command == 'timeseries':
-        create_all(pathsave=args.output_dir,
+        create_all(pathsave=os.path.abspath(args.output_dir),
                    img_o=img_o,
                    maskDraw=maskDraw,
                    size=args.size,
@@ -79,7 +87,7 @@ def main():
                    name_cell='timeseries_analysis')
 
     elif args.command == 'still':
-        create_all_still(pathsave=args.output_dir,
+        create_all_still(pathsave=os.path.abspath(args.output_dir),
                          img_o=img_o,
                          maskDraw=maskDraw,
                          size=args.size,
