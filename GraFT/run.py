@@ -318,31 +318,33 @@ def create_all_still(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,ang
     
     return
 
-###############################################################################
-#
-# load in and run functions
-#
-###############################################################################
 
-######################
-# timeseries
+if __name__ == '__main__':
+    ###############################################################################
+    #
+    # load in and run functions
+    #
+    ###############################################################################
 
-img_o = io.imread(os.path.join(base_path, "tiff", "timeseries.tif"))
-maskDraw = np.ones((img_o.shape[1:3]))
-create_all(pathsave=os.path.join(base_path, "timeseries/"),
-           img_o=img_o,
-           maskDraw=maskDraw,
-           size=6,eps=200,thresh_top=0.5,sigma=sigma,small=small,angleA=140,overlap=4,max_cost=100,
-           name_cell='in silico time')
+    ######################
+    # timeseries
 
-######################
-# one image
+    img_o = io.imread(os.path.join(base_path, "tiff", "timeseries.tif"))
+    maskDraw = np.ones((img_o.shape[1:3]))
+    create_all(pathsave=os.path.join(base_path, "timeseries/"),
+               img_o=img_o,
+               maskDraw=maskDraw,
+               size=6,eps=200,thresh_top=0.5,sigma=sigma,small=small,angleA=140,overlap=4,max_cost=100,
+               name_cell='in silico time')
 
-img = io.imread(os.path.join(base_path, "tiff", "timeseries.tif"))
-img_still = img_o[0]
-maskDraw = np.ones((img.shape[1:3]))
-create_all_still(pathsave=os.path.join(base_path, "still/"),
-           img_o=img_still,
-           maskDraw=maskDraw,
-           size=6,eps=200,thresh_top=0.5,sigma=sigma,small=small,angleA=140,overlap=4,
-           name_cell='in silico still')
+    ######################
+    # one image
+
+    img = io.imread(os.path.join(base_path, "tiff", "timeseries.tif"))
+    img_still = img_o[0]
+    maskDraw = np.ones((img.shape[1:3]))
+    create_all_still(pathsave=os.path.join(base_path, "still/"),
+               img_o=img_still,
+               maskDraw=maskDraw,
+               size=6,eps=200,thresh_top=0.5,sigma=sigma,small=small,angleA=140,overlap=4,
+               name_cell='in silico still')
