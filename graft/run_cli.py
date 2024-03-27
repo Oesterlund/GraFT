@@ -11,7 +11,7 @@ import os
 import numpy as np
 import skimage.io as io
 
-from run import create_all, create_all_still
+from graft.run import create_all, create_all_still
 
 
 # Constants for default values
@@ -69,8 +69,6 @@ def main():
         maskDraw = io.imread(os.path.abspath(args.mask_path))
     else:
         maskDraw = generate_default_mask(img_o.shape)
-
-    # TODO: pathsave parameter needs to have a trailing '/' (better: fix create_all(_still))
 
     if args.command == 'timeseries':
         create_all(pathsave=os.path.abspath(args.output_dir),

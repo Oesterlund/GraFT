@@ -19,7 +19,7 @@ import pickle
 # Get the directory containing this script.
 base_path = os.path.dirname(os.path.abspath(__file__))
 
-import utilsF
+from graft import utilsF
 
 plt.close('all')
 
