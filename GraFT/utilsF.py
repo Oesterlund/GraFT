@@ -6,6 +6,7 @@ Created on Fri Mar 24 13:29:36 2023
 @author: pgf840
 """
 
+import os
 import numpy as np
 import pandas as pd
 import skimage
@@ -2281,7 +2282,7 @@ def angle_majorCell(nodes_edge,nodePositions,vec_mask):
         angle=np.arccos(np.dot(vec1,vec2)/(np.linalg.norm(vec1)*np.linalg.norm(vec2))) * 180.0 / np.pi
     return angle
 
-def barplot180(list_points,list_bins,save_dir,name_save,color_code):
+def barplot180(list_points, list_bins, output_path, color_code):
     '''
     creation of circular barplot for angles
 
@@ -2291,10 +2292,8 @@ def barplot180(list_points,list_bins,save_dir,name_save,color_code):
         list of binned weighted angles.
     list_bins : list
         list of bin values.
-    save_dir : directory path
-        path to save image.
-    name_save : name
-        name of figure.
+    output_path : str
+        path to save figure.
     color_code : cmap
         value for cmap.
 
@@ -2327,7 +2326,7 @@ def barplot180(list_points,list_bins,save_dir,name_save,color_code):
                              )
                 )
     
-    fig.write_image(save_dir+name_save, format='png')
+    fig.write_image(output_path, format='png')
     return
 
 def filament_info_time(img_o, g_tagged, posL, path,imF,maskDraw):
@@ -2435,7 +2434,7 @@ def filament_info_time(img_o, g_tagged, posL, path,imF,maskDraw):
         fil_bend[m] = np.mean(filInfo['filament bendiness'])
         fil_bendvar[m] = np.std(filInfo['filament bendiness'])
     
-    FullfilInfo.to_csv(path+'tracked_filaments_info.csv',index=False)
+    FullfilInfo.to_csv(os.path.join(path, 'tracked_filaments_info.csv'),index=False)
     
     return FullfilInfo
 
@@ -2516,7 +2515,7 @@ def filament_info(img_o, graphTagg, posL, path,imF,maskDraw):
     
     FullfilInfo = filInfo
         
-    FullfilInfo.to_csv(path+'traced_filaments_info.csv',index=False)
+    FullfilInfo.to_csv(os.path.join(path, 'traced_filaments_info.csv'),index=False)
     
     return FullfilInfo
 
@@ -2598,7 +2597,7 @@ def filament_info_no(img_o, graphTagg, posL, path,imF,maskDraw,no):
     
     FullfilInfo = filInfo
         
-    FullfilInfo.to_csv(path+no+'traced_filaments_info.csv',index=False)
+    FullfilInfo.to_csv(os.path.join(path, no+'traced_filaments_info.csv'),index=False)
     
     return FullfilInfo
 
@@ -2639,10 +2638,10 @@ def circ_stat_plot(path,pd_fil_info):
         
             list_ec[l] = pd_fil_info[pd_fil_info['frame number']==m]['filament length'][(pd_fil_info[pd_fil_info['frame number']==m]['filament angle']>bins180[l]) & (pd_fil_info[pd_fil_info['frame number']==m]['filament angle']<=bins180[l+1])].sum()
         
-         
         bins180 = bins180[1:]-2.5
-        name180 = "circ_stat/stat{0}.png".format(m)
-        barplot180(list_ec,bins180,path,name180,color_code='#0000FF')
+        path180 = os.path.join(path, "circ_stat", f"stat{m}.png")
+        barplot180(list_ec, bins180, path180, color_code='#0000FF')
+
     return mean_angle,var_val
 
 def circ_stat_time(pd_fil_info):
@@ -2691,8 +2690,8 @@ def circ_stat(pd_fil_info,path):
     
      
     bins180 = bins180[1:]-2.5
-    name180 = "circ_stat/stat.png"
-    barplot180(list_ec,bins180,path,name180,color_code='#0000FF')
+    path180 = os.path.join(path, "circ_stat", "stat.png")
+    barplot180(list_ec, bins180, path180, color_code='#0000FF')
     return mean_angle,var_val
 
 def pos_tagged_filament(graph,pos,l):
@@ -2899,5 +2898,5 @@ def track_move(g_tagged,posL,img_o,memKeep, max_cost,path,pd_fil_info):
         #concat the pandas together
         fullTrack = pd.concat(([fullTrack,frameTrack]),ignore_index=True)
     pd_full = angle_move(fullTrack,pd_fil_info)
-    pd_full.to_csv(path+'tracked_move.csv',index=False)
+    pd_full.to_csv(os.path.join(path, 'tracked_move.csv'),index=False)
     return pd_full

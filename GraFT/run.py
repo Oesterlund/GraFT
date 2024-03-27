@@ -21,8 +21,6 @@ base_path = os.path.dirname(os.path.abspath(__file__))
 
 import utilsF
 
-pathsave = base_path + "/"
-
 plt.close('all')
 
 sigma = 1.0                                                                     # tubeness filter width
@@ -34,13 +32,15 @@ small = 50.0                                                                    
 #
 ###############################################################################
 
+def create_output_dirs(output_dir):
+    """Ensure that the given output directory incl. subdirectories exists."""
+    for subdir_name in ('n_graphs', 'circ_stat', 'mov', 'plots'):
+        subdir_path = os.path.join(output_dir, subdir_name)
+        if not os.path.exists(subdir_path):
+            os.makedirs(subdir_path)
+
 def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,overlap,max_cost,name_cell):
-    # check if folders exists:
-    path_check = [pathsave+'n_graphs',pathsave+'circ_stat',pathsave+'mov',pathsave+'plots']
-    for i in range(len(path_check)):
-        
-        if not os.path.exists(path_check[i]):
-            os.makedirs(path_check[i])
+    create_output_dirs(pathsave)
     
     graph_s = [0]*len(img_o)
     posL = [0]*len(img_o)
@@ -68,7 +68,7 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
         # 0) create graph
         graph_s[q], posL[q], imgSkel[q], imgAF[q], imgBl[q],imF[q],mask[q],df_pos[q] = utilsF.creategraph(imgP[q],size=size,eps=eps,thresh_top=thresh_top,sigma=sigma,small=small)
         utilsF.draw_graph(imgSkel[q],graph_s[q],posL[q],"untagged graph")
-        #plt.savefig(pathsave+'n_graphs/untaggedgraph{0}.png'.format(q))
+
         # 1) find all dangling edges and mark them
         graphD[q] = utilsF.dangling_edges(graph_s[q].copy())
         # 2) create line graph
@@ -79,13 +79,13 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
         graphTagg[q] = utilsF.dfs_constrained(graph_s[q].copy(),lgG_V[q].copy(),imgBl[q],posL[q],angleA,overlap) 
         
         utilsF.draw_graph_filament_nocolor(imgP[q],graphTagg[q],posL[q],"",'filament')
-        plt.savefig(pathsave+'n_graphs/graph{0}.png'.format(q))
+        plt.savefig(os.path.join(pathsave, 'n_graphs', f'graph{q}.png'))
     
         plt.close('all')
         no_filaments[q] = len(np.unique(np.asarray(list(graphTagg[q].edges(data='filament')))[:,2]))
         print('filament defined: ',len(np.unique(np.asarray(list(graphTagg[q].edges(data='filament')))[:,2])))
          
-    pickle.dump(posL, open(pathsave+'posL.gpickle', 'wb'))
+    pickle.dump(posL, open(os.path.join(pathsave, 'posL.gpickle'), 'wb'))
     ###############################################################################
     #
     # data
@@ -122,13 +122,13 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
     for i in range(len(img_o)-1):
         g_tagged[i+1],cost[i],tag_new[i+1],filamentsNU = utilsF.filament_tag(g_tagged[i],graphTagg[i+1],posL[i],posL[i+1],tag_new[i],max_cost,filamentsNU,memKeep)
     
-    pickle.dump(g_tagged, open(pathsave+'tagged_graph.gpickle', 'wb'))
+    pickle.dump(g_tagged, open(os.path.join(pathsave, 'tagged_graph.gpickle'), 'wb'))
     
     
     for i in range(len(img_o)):
         title = "graph {}".format(i+1)
         utilsF.draw_graph_filament_track_nocolor(imgP[i],g_tagged[i],posL[i],title,max(tag_new),padv=50)
-        pathsave_taggraph = pathsave+"mov/trackgraph{}.png".format(i+1)
+        pathsave_taggraph = os.path.join(pathsave, "mov", f"trackgraph{i+1}.png")
         plt.savefig(pathsave_taggraph)
         plt.close('all')
     
@@ -156,7 +156,7 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
     plt.scatter(np.arange(0,len(unique_filaments)),unique_filaments)
     plt.xlabel('frames',size=24)
     plt.ylabel('# filaments',size=24)
-    plt.savefig(pathsave+'plots/filaments_per_frame.png')
+    plt.savefig(os.path.join(pathsave, 'plots', 'filaments_per_frame.png'))
     
     
     ###############################################################################
@@ -165,9 +165,9 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
     #
     ###############################################################################
     
-    pd_fil_info = utilsF.filament_info_time(imgP, g_tagged, posL, pathsave,imF,maskDraw)
+    pd_fil_info = utilsF.filament_info_time(imgP, g_tagged, posL, pathsave, imF, maskDraw)
     
-    pd_fil_info = pd.read_csv(pathsave+'tracked_filaments_info.csv')
+    pd_fil_info = pd.read_csv(os.path.join(pathsave, 'tracked_filaments_info.csv'))
 
     vals = Counter(pd_fil_info['filament']).values()
     
@@ -176,14 +176,14 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
     plt.hist(bins[:-1], bins, weights=counts,color='green')
     plt.xlabel('frames',size=24)
     plt.ylabel('filaments survival',size=24)
-    plt.savefig(pathsave+'plots/survival_filaments.png')
+    plt.savefig(os.path.join(pathsave, 'plots', 'survival_filaments.png'))
     
     counts,bins = np.histogram(list(vals),20,density='True')
     plt.figure(figsize=(10,7))
     plt.hist(bins[:-1], bins, weights=counts,color='green')
     plt.xlabel('frames',size=24)
     plt.ylabel('filaments survival',size=24)
-    plt.savefig(pathsave+'plots/survival_filaments_normalized.png')
+    plt.savefig(os.path.join(pathsave, 'plots', 'survival_filaments_normalized.png'))
     
     dens = np.zeros(len(img_o))
     fil_len = np.zeros(len(img_o))
@@ -198,13 +198,13 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
     plt.scatter(np.arange(0,len(img_o)),dens)
     plt.xlabel('frames',size=24)
     plt.ylabel('filament density',size=24)
-    plt.savefig(pathsave+'plots/filament_density.png')
+    plt.savefig(os.path.join(pathsave, 'plots', 'filament_density.png'))
     
     plt.figure(figsize=(10,10))
     plt.scatter(np.arange(0,len(img_o)),fil_len)
     plt.xlabel('frames',size=24)
     plt.ylabel('filament median length',size=24)
-    plt.savefig(pathsave+'plots/filamentlength.png')
+    plt.savefig(os.path.join(pathsave, 'plots', 'filamentlength.png'))
     
     
     mean_angle,var_val = utilsF.circ_stat_plot(pathsave,pd_fil_info)
@@ -216,13 +216,13 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
     plt.plot(np.arange(0,len(mean_angle)),np.ones(len(mean_angle))*line_mean,color='black',linestyle='dashed')
     plt.xlabel('Frames',size=24)
     plt.ylabel('Circular mean angle',size=24)
-    plt.savefig(pathsave+'plots/angles_mean.png')
+    plt.savefig(os.path.join(pathsave, 'plots', 'angles_mean.png'))
     
     plt.figure(figsize=(10,10))
     plt.scatter(np.arange(0,len(var_val)),var_val)
     plt.xlabel('frames',size=24)
     plt.ylabel('circular variance of angles',size=24)
-    plt.savefig(pathsave+'plots/angles_var.png')
+    plt.savefig(os.path.join(pathsave, 'plots', 'angles_var.png'))
     
     tagsU = pd_fil_info['filament'].unique()
     vals = np.zeros(len(tagsU))
@@ -236,7 +236,7 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
         plt.plot(np.arange(0,len(fil)),fil)
     plt.xlabel('Survival frames',size=24)
     plt.ylabel('filament length',size=24)
-    plt.savefig(pathsave+'plots/survival_len.png')
+    plt.savefig(os.path.join(pathsave, 'plots', 'survival_len.png'))
     
     ###############################################################################
     #
@@ -252,19 +252,13 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
     df_angles2['filament mediam intensity per length'] = fil_I
     df_angles2['name'] = name_cell
     
-    df_angles2.to_csv(pathsave+'value_per_frame.csv',index=False)
+    df_angles2.to_csv(os.path.join(pathsave, 'value_per_frame.csv'),index=False)
     
     return
 
 
 def create_all_still(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,overlap,name_cell):
-    # check if folders exists:
-    path_check = [pathsave+'n_graphs',pathsave+'circ_stat',pathsave+'mov',pathsave+'plots']
-    for i in range(len(path_check)):
-        
-        if not os.path.exists(path_check[i]):
-            os.makedirs(path_check[i])
-    
+    create_output_dirs(pathsave)    
     
     N,P = (img_o.shape)
     imgP=np.zeros((N+2,P+2))
@@ -286,7 +280,7 @@ def create_all_still(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,ang
     graphTagg = utilsF.dfs_constrained(graph_s.copy(),lgG_V.copy(),imgBl,posL,angleA,overlap) 
     
     utilsF.draw_graph_filament_nocolor(imgP,graphTagg,posL,"",'filament')
-    plt.savefig(pathsave+'n_graphs/graph.png')
+    plt.savefig(os.path.join(pathsave, 'n_graphs', 'graph.png'))
 
     plt.close('all')
     print('filament defined: ',len(np.unique(np.asarray(list(graphTagg.edges(data='filament')))[:,2])))
@@ -301,7 +295,7 @@ def create_all_still(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,ang
     pd_fil_info = utilsF.filament_info(imgP, graphTagg, posL, pathsave,imF,maskDraw)
     
     
-    pd_fil_info = pd.read_csv(pathsave+'traced_filaments_info.csv')
+    pd_fil_info = pd.read_csv(os.path.join(pathsave, 'traced_filaments_info.csv'))
     
     mean_len = np.mean(pd_fil_info['filament length'])
     
@@ -329,7 +323,7 @@ if __name__ == '__main__':
 
     img_o = io.imread(os.path.join(base_path, "tiff", "timeseries.tif"))
     maskDraw = np.ones((img_o.shape[1:3]))
-    create_all(pathsave=os.path.join(base_path, "timeseries/"),
+    create_all(pathsave=os.path.join(base_path, "timeseries"),
                img_o=img_o,
                maskDraw=maskDraw,
                size=6,eps=200,thresh_top=0.5,sigma=sigma,small=small,angleA=140,overlap=4,max_cost=100,
@@ -341,7 +335,7 @@ if __name__ == '__main__':
     img = io.imread(os.path.join(base_path, "tiff", "timeseries.tif"))
     img_still = img_o[0]
     maskDraw = np.ones((img.shape[1:3]))
-    create_all_still(pathsave=os.path.join(base_path, "still/"),
+    create_all_still(pathsave=os.path.join(base_path, "still"),
                img_o=img_still,
                maskDraw=maskDraw,
                size=6,eps=200,thresh_top=0.5,sigma=sigma,small=small,angleA=140,overlap=4,
