@@ -15,16 +15,15 @@ import pandas as pd
 from collections import Counter
 import pickle
 
+from graft import utilsF
 
 # Get the directory containing this script.
 base_path = os.path.dirname(os.path.abspath(__file__))
 
-from graft import utilsF
-
 plt.close('all')
 
-sigma = 1.0                                                                     # tubeness filter width
-small = 50.0                                                                    # cluster removal  
+SIGMA = 1.0                                                                     # tubeness filter width
+SMALL = 50.0                                                                    # cluster removal  
 
 ###############################################################################
 #
@@ -326,7 +325,7 @@ if __name__ == '__main__':
     create_all(pathsave=os.path.join(base_path, "timeseries"),
                img_o=img_o,
                maskDraw=maskDraw,
-               size=6,eps=200,thresh_top=0.5,sigma=sigma,small=small,angleA=140,overlap=4,max_cost=100,
+               size=6,eps=200,thresh_top=0.5,sigma=SIGMA,small=SMALL,angleA=140,overlap=4,max_cost=100,
                name_cell='in silico time')
 
     ######################
@@ -338,5 +337,5 @@ if __name__ == '__main__':
     create_all_still(pathsave=os.path.join(base_path, "still"),
                img_o=img_still,
                maskDraw=maskDraw,
-               size=6,eps=200,thresh_top=0.5,sigma=sigma,small=small,angleA=140,overlap=4,
+               size=6,eps=200,thresh_top=0.5,sigma=SIGMA,small=SMALL,angleA=140,overlap=4,
                name_cell='in silico still')
