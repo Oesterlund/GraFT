@@ -17,9 +17,13 @@ def files_equal(file1_path, file2_path):
 
 @pytest.fixture(scope="module")  # fixture to setup and teardown test env
 def test_env():
-    # Setup test environment
-    image_path = "graft/tiff/timeseries.tif"
-    test_output_dir = "test_output"
+    # get the path of the directory that contains this script
+    test_dir = os.path.dirname(os.path.realpath(__file__))
+
+    image_path = os.path.join(test_dir, "..", "graft", "tiff", "timeseries.tif")
+    test_output_dir = os.path.join(test_dir, "..", "test_output")
+    expected_output_dir = os.path.join(test_dir, "expected_output")
+
     os.makedirs(test_output_dir, exist_ok=True)
 
     img_o = io.imread(os.path.abspath(image_path))
@@ -30,15 +34,15 @@ def test_env():
                angleA=140, overlap=4, max_cost=100,
                name_cell='in silico time')
     
-    yield test_output_dir  # Provide the test output directory to the test
+    # Provide the test output directory to the test
+    yield test_output_dir, expected_output_dir 
 
     # Teardown test environment
     shutil.rmtree(test_output_dir)
 
 # Test function to check output files
 def test_regression(test_env):
-    output_dir = test_env
-    expected_dir = "expected_output"
+    output_dir, expected_dir = test_env
     # Assuming expected_output contains the expected files
     
     # Compare file by file (Example for a specific file)

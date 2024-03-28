@@ -82,7 +82,7 @@ def main():
                    angleA=args.angleA,
                    overlap=args.overlap,
                    max_cost=args.max_cost,
-                   name_cell='timeseries_analysis')
+                   name_cell='in silico time')
 
     elif args.command == 'still':
         create_all_still(pathsave=os.path.abspath(args.output_dir),
@@ -95,7 +95,7 @@ def main():
                          small=args.small,
                          angleA=args.angleA,
                          overlap=args.overlap,
-                         name_cell='still_image_analysis')
+                         name_cell='in silico still')
 
     else:
         parser.print_help()
