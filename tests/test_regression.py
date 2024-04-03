@@ -6,7 +6,9 @@ import pickle
 
 import networkx as nx
 import numpy as np
+from skimage.color import rgb2gray
 import skimage.io as io
+from skimage.metrics import structural_similarity as ssim
 import pandas as pd
 import pytest
 
@@ -101,3 +103,54 @@ def test_tagged_graph_pickle_file(test_env):
 
             assert len(generated_edges) == len(expected_edges), f"Edges between nodes {u} and {v} do not match in count."
             compare_edge_attributes(generated_edges, expected_edges)
+
+
+def compare_images(image_path_1, image_path_2, method='ssim', tolerance=0.99):
+    """
+    Compare two images using either direct numpy comparison or SSIM.
+    :param image_path_1: Path to the first image.
+    :param image_path_2: Path to the second image.
+    :param method: 'ssim' for Structural Similarity Index or 'direct' for direct numpy comparison.
+    :param tolerance: Tolerance threshold for SSIM. Images are considered similar if SSIM >= tolerance.
+    :return: True if images are considered equal, False otherwise.
+    """
+    img1 = io.imread(image_path_1)
+    img2 = io.imread(image_path_2)
+
+    # remove alpha channel if images have 4 channels (RGBA)
+    if img1.shape[-1] == 4:
+        img1 = img1[..., :3]
+    if img2.shape[-1] == 4:
+        img2 = img2[..., :3]
+
+    if method == 'direct':
+        return np.array_equal(img1, img2)
+    elif method == 'ssim':
+        # convert images to grayscale to compute SSIM
+        img1_gray = rgb2gray(img1)
+        img2_gray = rgb2gray(img2)
+
+        ssim_index = ssim(img1_gray, img2_gray)
+        return ssim_index >= tolerance
+
+def test_plot_images(test_env):
+    """
+    Test that all generated images are structurally similar to the
+    expected output images.
+    
+    TODO / FIXME: replace this stopgap test with a real test that
+    compares the underlying data structures instead of the generated images.
+    """
+    output_dir, expected_dir = test_env
+
+    for plot_dir in ('circ_stat', 'mov', 'n_graphs', 'plots'):
+        output_plot_dir = os.path.join(output_dir, plot_dir)
+        expected_plot_dir = os.path.join(expected_dir, plot_dir)
+
+        for plot_fname in os.listdir(expected_plot_dir):
+            if plot_fname.endswith('.png'):
+                generated_plot_path = os.path.join(output_plot_dir, plot_fname)
+                expected_plot_path = os.path.join(expected_plot_dir, plot_fname)
+
+                assert compare_images(generated_plot_path, expected_plot_path, method='ssim'), \
+                    f"{plot_fname} does not match the expected output."
