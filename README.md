@@ -37,19 +37,12 @@ I recommend creating a new python environment using conda and activate it to ins
 conda create -n cdfs python
 conda activate cdfs
 ```
-And install the dependencies with either pip or conda
+And install the package and its dependencies using pip:
+
 ```
-conda install NetworkX==2.8.4
-conda install scikit-image 0.19.3
-conda install scipy==1.9.3
-conda install pandas==1.4.4
-conda install numpy==1.23.5
-conda install matplotlib==3.5.1
-conda install simplification==0.6.2
-conda install plotly==5.11.0
-conda install astropy==5.1
-conda install scikit-spatial==6.8.0
+pip install -e .
 ```
+
 Installation time does not take long, I recomend working with a GUI like [Anaconda-Navigator](https://docs.anaconda.com/free/navigator/index.html), which contains the IDE [Spyder](https://docs.anaconda.com/free/anaconda/ide-tutorials/spyder/).
 
 # Workflow
