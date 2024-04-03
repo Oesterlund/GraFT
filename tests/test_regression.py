@@ -5,6 +5,7 @@ import shutil
 
 import numpy as np
 import skimage.io as io
+import pandas as pd
 import pytest
 
 from graft.run import create_all
@@ -34,19 +35,27 @@ def test_env():
                angleA=140, overlap=4, max_cost=100,
                name_cell='in silico time')
     
-    # Provide the test output directory to the test
+    # Provide the paths that the test_regression function needs.
     yield test_output_dir, expected_output_dir 
 
     # Teardown test environment
     shutil.rmtree(test_output_dir)
 
-# Test function to check output files
+
 def test_regression(test_env):
     output_dir, expected_dir = test_env
-    # Assuming expected_output contains the expected files
     
-    # Compare file by file (Example for a specific file)
-    assert files_equal(os.path.join(output_dir, "tracked_filaments_info.csv"),
-                       os.path.join(expected_dir, "tracked_filaments_info.csv")), "tracked_filaments_info.csv differs"
+    generated_file = os.path.join(output_dir, "tracked_filaments_info.csv")
+    expected_file = os.path.join(expected_dir, "tracked_filaments_info.csv")
     
+    # Load the files into pandas DataFrames
+    generated_df = pd.read_csv(generated_file)
+    expected_df = pd.read_csv(expected_file)
+    
+    # Using pandas to compare the DataFrames with a tolerance for floating point errors
+    try:
+        pd.testing.assert_frame_equal(generated_df, expected_df, check_dtype=False, atol=1e-5)
+    except AssertionError as e:
+        raise AssertionError(f"tracked_filaments_info.csv content does not match expected output. {e}")
+
     # TODO: Extend this to compare all expected files.
