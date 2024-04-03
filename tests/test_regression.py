@@ -4,6 +4,7 @@ import hashlib
 import shutil
 import pickle
 
+import networkx as nx
 import numpy as np
 import skimage.io as io
 import pandas as pd
@@ -73,3 +74,30 @@ def test_posL_pickle_file(test_env):
     for frame_index, (generated_frame_pos, expected_frame_pos) in enumerate(zip(generated_posL, expected_posL)):
         assert np.array_equal(generated_frame_pos, expected_frame_pos), \
         f"Node positions don't match for frame {frame_index}."
+
+def compare_edge_attributes(generated_edges, expected_edges):
+    for ((key1, attr1), (key2, attr2)) in zip(generated_edges, expected_edges):
+        assert key1 == key2, "Edge keys do not match."
+        assert attr1 == attr2, "Edge attributes do not match for key {}".format(key1)
+
+def test_tagged_graph_pickle_file(test_env):
+    output_dir, expected_dir = test_env
+
+    with open(os.path.join(output_dir, 'tagged_graph.gpickle'), 'rb') as f:
+        generated_graphs = pickle.load(f)
+    with open(os.path.join(expected_dir, 'tagged_graph.gpickle'), 'rb') as f:
+        expected_graphs = pickle.load(f)
+
+    assert len(generated_graphs) == len(expected_graphs), "Number of graphs does not match."
+
+    for generated_graph, expected_graph in zip(generated_graphs, expected_graphs):
+        assert set(generated_graph.nodes()) == set(expected_graph.nodes()), "Graph nodes do not match."
+        assert nx.number_of_edges(generated_graph) == nx.number_of_edges(expected_graph), "Number of edges do not match."
+
+        # Compare all edges and attributes for each pair of nodes
+        for (u, v) in generated_graph.edges():
+            generated_edges = sorted(generated_graph.get_edge_data(u, v).items(), key=lambda x: x[0])
+            expected_edges = sorted(expected_graph.get_edge_data(u, v).items(), key=lambda x: x[0])
+
+            assert len(generated_edges) == len(expected_edges), f"Edges between nodes {u} and {v} do not match in count."
+            compare_edge_attributes(generated_edges, expected_edges)
