@@ -1,4 +1,5 @@
 # GraFT: Graph of Filaments over Time
+
 <!--![alt text](https://github.com/Oesterlund/GraFT/blob/main/GraFt_logo.png) -->
 <p align="center">
    <img src="https://github.com/Oesterlund/GraFT/blob/main/GraFT_logo.png" alt="alt text" width="500">
@@ -20,6 +21,7 @@ The tool can perform identifcation on still image-data, and identification with 
 ## Dependencies
 The method was written in Python 3.8 and is dependent on the libraries mentioned below.
 Current libraries with versions was used to build the code:
+
 - networkx 2.8.4
 - scikit-image 0.19.3
 - scipy 1.9.3
