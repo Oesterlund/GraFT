@@ -11,7 +11,6 @@ import matplotlib.pyplot as plt
 import os
 import skimage.io as io
 
-from graft import utilsF
 from graft.main import create_all, create_all_still
 
 # Get the directory containing this script.

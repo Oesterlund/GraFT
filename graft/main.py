@@ -21,6 +21,16 @@ def create_output_dirs(output_dir):
             os.makedirs(subdir_path)
 
 
+def generate_default_mask(image_shape):
+    """Generate a default mask of ones based on the image shape."""
+    if len(image_shape) == 3:  # Time-series image
+        return np.ones(image_shape[1:])
+    elif len(image_shape) == 2:  # Still image
+        return np.ones(image_shape)
+    else:
+        raise ValueError("Unsupported image shape. Expected 2 or 3 dimensions.")
+
+
 def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,overlap,max_cost,name_cell):
     create_output_dirs(pathsave)
     

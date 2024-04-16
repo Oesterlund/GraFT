@@ -11,7 +11,7 @@ import os
 import numpy as np
 import skimage.io as io
 
-from graft.main import create_all, create_all_still
+from graft.main import create_all, create_all_still, generate_default_mask
 
 
 # Constants for default values
@@ -25,13 +25,6 @@ DEFAULT_OVERLAP = 4
 DEFAULT_MAX_COST = 100
 
 
-def generate_default_mask(image_shape):
-    """Generate a default mask of ones based on the image shape."""
-    # for timeseries images with shape (frames, height, width)
-    if len(image_shape) == 3:
-        return np.ones(image_shape[1:])
-    # for still images with shape (height, width)
-    return np.ones(image_shape)
 
 def main():
     parser = argparse.ArgumentParser(description="GraFT: Graph of Filaments over Time")
