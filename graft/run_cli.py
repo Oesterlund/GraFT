@@ -11,7 +11,7 @@ import os
 import numpy as np
 import skimage.io as io
 
-from graft.run import create_all, create_all_still
+from graft.main import create_all, create_all_still
 
 
 # Constants for default values
