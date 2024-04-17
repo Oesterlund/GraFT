@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Feb  3 08:57:59 2023
-
-@author: pgf840
-"""
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,19 +12,6 @@ import pickle
 
 from graft import utilsF
 
-# Get the directory containing this script.
-base_path = os.path.dirname(os.path.abspath(__file__))
-
-plt.close('all')
-
-SIGMA = 1.0                                                                     # tubeness filter width
-SMALL = 50.0                                                                    # cluster removal  
-
-###############################################################################
-#
-# function to create all
-#
-###############################################################################
 
 def create_output_dirs(output_dir):
     """Ensure that the given output directory incl. subdirectories exists."""
@@ -37,6 +19,17 @@ def create_output_dirs(output_dir):
         subdir_path = os.path.join(output_dir, subdir_name)
         if not os.path.exists(subdir_path):
             os.makedirs(subdir_path)
+
+
+def generate_default_mask(image_shape):
+    """Generate a default mask of ones based on the image shape."""
+    if len(image_shape) == 3:  # Time-series image
+        return np.ones(image_shape[1:])
+    elif len(image_shape) == 2:  # Still image
+        return np.ones(image_shape)
+    else:
+        raise ValueError("Unsupported image shape. Expected 2 or 3 dimensions.")
+
 
 def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,overlap,max_cost,name_cell):
     create_output_dirs(pathsave)
@@ -308,34 +301,3 @@ def create_all_still(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,ang
     print('mean angle: ', mean_angle, 'circ var: ', var_val, 'mean length: ', mean_len)
     
     return
-
-
-if __name__ == '__main__':
-    ###############################################################################
-    #
-    # load in and run functions
-    #
-    ###############################################################################
-
-    ######################
-    # timeseries
-
-    img_o = io.imread(os.path.join(base_path, "tiff", "timeseries.tif"))
-    maskDraw = np.ones((img_o.shape[1:3]))
-    create_all(pathsave=os.path.join(base_path, "timeseries"),
-               img_o=img_o,
-               maskDraw=maskDraw,
-               size=6,eps=200,thresh_top=0.5,sigma=SIGMA,small=SMALL,angleA=140,overlap=4,max_cost=100,
-               name_cell='in silico time')
-
-    ######################
-    # one image
-
-    img = io.imread(os.path.join(base_path, "tiff", "timeseries.tif"))
-    img_still = img_o[0]
-    maskDraw = np.ones((img.shape[1:3]))
-    create_all_still(pathsave=os.path.join(base_path, "still"),
-               img_o=img_still,
-               maskDraw=maskDraw,
-               size=6,eps=200,thresh_top=0.5,sigma=SIGMA,small=SMALL,angleA=140,overlap=4,
-               name_cell='in silico still')

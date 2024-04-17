@@ -12,7 +12,7 @@ from skimage.metrics import structural_similarity as ssim
 import pandas as pd
 import pytest
 
-from graft.run import create_all
+from graft.main import create_all
 
 
 def files_equal(file1_path, file2_path):
