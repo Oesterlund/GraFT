@@ -1,6 +1,7 @@
 from io import BytesIO
 from pathlib import Path
 import re
+import tempfile
 
 import streamlit as st
 import numpy as np
@@ -40,35 +41,38 @@ if uploaded_file is not None:
         if img_o.ndim != 3:
             raise ValueError(f"Uploaded image is not a time-series. Expected image with 3 dimensions (frames, height, width), got dimensions: {img_o.shape}.")
 
-        mask = np.ones(img_o.shape[1:])  # Generate a mask for the time-series image
-        output_dir = Path("output")
-        create_output_dirs(str(output_dir))
+        mask = np.ones(img_o.shape[1:])  # generate a mask for the time-series image
 
-        with st.spinner('Running analysis... Please wait'):
-            create_all(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
-                       size=6, eps=200, thresh_top=0.5, sigma=sigma, small=small,
-                       angleA=angleA, overlap=overlap, max_cost=max_cost, name_cell='in silico time')
-            st.success("Analysis completed!")
+        # create temp directory structure for output files
+        with tempfile.TemporaryDirectory() as temp_dir:
+            output_dir = Path(temp_dir)
+            create_output_dirs(str(output_dir))
 
-        # Display images from all subdirectories using tabs
-        subdirs = ['n_graphs', 'circ_stat', 'mov', 'plots']
-        tab_titles = [f"{subdir.replace('_', ' ').title()}" for subdir in subdirs]
-        tabs = st.tabs(tab_titles)  # Create a tab for each subdirectory
+            with st.spinner('Running analysis... Please wait'):
+                create_all(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
+                           size=6, eps=200, thresh_top=0.5, sigma=sigma, small=small,
+                           angleA=angleA, overlap=overlap, max_cost=max_cost, name_cell='in silico time')
+                st.success("Analysis completed!")
 
-        for tab, subdir in zip(tabs, subdirs):
-            with tab:
-                st.subheader(f"{subdir.replace('_', ' ').title()} Output")
-                subdir_path = Path("output") / subdir
-                images = list(subdir_path.glob('*.png'))
+            # Display images from all subdirectories using tabs
+            subdirs = ['n_graphs', 'circ_stat', 'mov', 'plots']
+            tab_titles = [f"{subdir.replace('_', ' ').title()}" for subdir in subdirs]
+            tabs = st.tabs(tab_titles)  # Create a tab for each subdirectory
 
-                # sort images naturally by filename
-                images_sorted = sorted(images, key=lambda x: natural_sort_key(x.name))
-                if images_sorted:
-                    for image_path in images_sorted:
-                        image = skimage_io.imread(str(image_path))
-                        st.image(image, caption=f'{image_path.name}', use_column_width=True)
-                else:
-                    st.write(f"No images found in {subdir}.")
+            for tab, subdir in zip(tabs, subdirs):
+                with tab:
+                    st.subheader(f"{subdir.replace('_', ' ').title()} Output")
+                    subdir_path = Path("output") / subdir
+                    images = list(subdir_path.glob('*.png'))
+
+                    # sort images naturally by filename
+                    images_sorted = sorted(images, key=lambda x: natural_sort_key(x.name))
+                    if images_sorted:
+                        for image_path in images_sorted:
+                            image = skimage_io.imread(str(image_path))
+                            st.image(image, caption=f'{image_path.name}', use_column_width=True)
+                    else:
+                        st.write(f"No images found in {subdir}.")
 
     except Exception as e:
         st.error(str(e))
