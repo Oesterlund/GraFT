@@ -8,7 +8,6 @@ Commandline interface for GraFT.
 import argparse
 import os
 
-import numpy as np
 import skimage.io as io
 
 from graft.main import create_all, create_all_still, generate_default_mask

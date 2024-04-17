@@ -4,7 +4,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import skimage.io as io
 import networkx as nx
 import pandas as pd
 from collections import Counter
