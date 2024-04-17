@@ -38,18 +38,23 @@ if uploaded_file is not None:
                        angleA=angleA, overlap=overlap, max_cost=max_cost, name_cell='in silico time')
             st.success("Analysis completed!")
 
-        # Display images from all subdirectories
+        # Display images from all subdirectories using tabs
         subdirs = ['n_graphs', 'circ_stat', 'mov', 'plots']
-        for subdir in subdirs:
-            st.subheader(f"{subdir.replace('_', ' ').title()}")
-            subdir_path = output_dir / subdir
-            images = list(subdir_path.glob('*.png'))
-            if images:
-                for image_path in images:
-                    image = skimage_io.imread(str(image_path))
-                    st.image(image, caption=f'{image_path.name}', use_column_width=True)
-            else:
-                st.write(f"No images found in {subdir}.")
+        tab_titles = [f"{subdir.replace('_', ' ').title()}" for subdir in subdirs]
+        tabs = st.tabs(tab_titles)  # Create a tab for each subdirectory
+
+        for tab, subdir in zip(tabs, subdirs):
+            with tab:
+                st.subheader(f"{subdir.replace('_', ' ').title()} Output")
+                subdir_path = output_dir / subdir
+                images = list(subdir_path.glob('*.png'))
+                if images:
+                    for image_path in images:
+                        image = skimage_io.imread(str(image_path))
+                        st.image(image, caption=f'{image_path.name}', use_column_width=True)
+                else:
+                    st.write(f"No images found in {subdir}.")
+
     except Exception as e:
         st.error(str(e))
 else:
