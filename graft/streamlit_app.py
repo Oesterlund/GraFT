@@ -25,11 +25,14 @@ uploaded_file = st.file_uploader("Upload TIFF file", type=['tif', 'tiff'])
 
 # Sidebar for configuration
 st.sidebar.title("Configuration")
+# all slider values: min, max, default
 sigma = st.sidebar.slider('Sigma', 0.5, 2.0, 1.0)
 small = st.sidebar.slider('Small', 30.0, 100.0, 50.0)
 angleA = st.sidebar.slider('Angle A', 100, 180, 140)
 overlap = st.sidebar.slider('Overlap', 1, 10, 4)
 max_cost = st.sidebar.slider('Max Cost', 50, 200, 100)
+size = st.sidebar.slider('Merge Radius (Size)', 1, 30, 6)
+
 
 if uploaded_file is not None:
     bytes_data = BytesIO(uploaded_file.getvalue())
@@ -50,7 +53,7 @@ if uploaded_file is not None:
 
             with st.spinner('Running analysis... Please wait'):
                 create_all(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
-                           size=6, eps=200, thresh_top=0.5, sigma=sigma, small=small,
+                           size=size, eps=200, thresh_top=0.5, sigma=sigma, small=small,
                            angleA=angleA, overlap=overlap, max_cost=max_cost, name_cell='in silico time')
                 st.success("Analysis completed!")
 
