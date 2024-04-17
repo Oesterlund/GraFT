@@ -52,6 +52,8 @@ if uploaded_file is not None:
             create_output_dirs(str(output_dir))
 
             with st.spinner('Running analysis... Please wait'):
+                # eps: threshold for Visvalingam-Whyatt algorithm for determining
+                # which points on a curve can be removed w/out significantly altering its shape
                 create_all(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
                            size=size, eps=200, thresh_top=0.5, sigma=sigma, small=small,
                            angleA=angleA, overlap=overlap, max_cost=max_cost, name_cell='in silico time')
