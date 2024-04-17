@@ -21,8 +21,8 @@ def test_env():
     test_dir = os.path.dirname(os.path.realpath(__file__))
 
     image_path = os.path.join(test_dir, "..", "graft", "tiff", "timeseries.tif")
-    test_output_dir = os.path.join(test_dir, "..", "test_output")
-    expected_output_dir = os.path.join(test_dir, "expected_output")
+    test_output_dir = os.path.join(test_dir, "..", "test_output", "create_all")
+    expected_output_dir = os.path.join(test_dir, "expected_output", "create_all")
 
     os.makedirs(test_output_dir, exist_ok=True)
 
