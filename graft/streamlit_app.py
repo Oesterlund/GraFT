@@ -1,10 +1,22 @@
+from io import BytesIO
+from pathlib import Path
+import re
+
 import streamlit as st
 import numpy as np
 import tifffile as tiff
 from skimage import io as skimage_io
-from io import BytesIO
-from pathlib import Path
+
 from graft.main import create_all, create_output_dirs
+
+
+# regex to find numbers in a string
+INTEGER_RE = re.compile(r"(\d+)")
+
+def natural_sort_key(s):
+    """Extracts a mixed numeric and non-numeric sorting key from strings."""
+    return [int(text) if text.isdigit() else text.lower()
+            for text in re.split(INTEGER_RE, str(s))]
 
 # Main Page
 st.title('GraFT: Graph of Filaments over Time')
@@ -46,10 +58,13 @@ if uploaded_file is not None:
         for tab, subdir in zip(tabs, subdirs):
             with tab:
                 st.subheader(f"{subdir.replace('_', ' ').title()} Output")
-                subdir_path = output_dir / subdir
+                subdir_path = Path("output") / subdir
                 images = list(subdir_path.glob('*.png'))
-                if images:
-                    for image_path in images:
+
+                # sort images naturally by filename
+                images_sorted = sorted(images, key=lambda x: natural_sort_key(x.name))
+                if images_sorted:
+                    for image_path in images_sorted:
                         image = skimage_io.imread(str(image_path))
                         st.image(image, caption=f'{image_path.name}', use_column_width=True)
                 else:
