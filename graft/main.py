@@ -30,6 +30,14 @@ def generate_default_mask(image_shape):
         raise ValueError("Unsupported image shape. Expected 2 or 3 dimensions.")
 
 
+def pad_timeseries_images(img_o):
+    M,N,P = (img_o.shape)
+    imgP=np.zeros((M,N+2,P+2))
+    
+    for m in range(len(img_o)):
+        imgP[m] = np.pad(img_o[m], 1, 'constant')
+    return imgP
+
 def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,overlap,max_cost,name_cell):
     create_output_dirs(pathsave)
     
@@ -47,11 +55,7 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
     graphTagg = [0]*len(img_o)
     no_filaments = [0]*len(img_o)
     
-    M,N,P = (img_o.shape)
-    imgP=np.zeros((M,N+2,P+2))
-    
-    for m in range(len(img_o)):
-        imgP[m] = np.pad(img_o[m], 1, 'constant')
+    imgP = pad_timeseries_images(img_o)
         
     for q in range(len(imgP)):
         
