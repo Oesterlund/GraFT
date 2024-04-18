@@ -38,48 +38,43 @@ def pad_timeseries_images(img_o):
         imgP[m] = np.pad(img_o[m], 1, 'constant')
     return imgP
 
+def process_individual_image(image, index, output_dir, size, eps, thresh_top, sigma, small, angleA, overlap):
+    # create graph
+    graph_s, posL, imgSkel, imgAF, imgBl, imF, mask, df_pos = utilsF.creategraph(image, size=size, eps=eps, thresh_top=thresh_top, sigma=sigma, small=small)
+
+    # find all dangling edges and mark them
+    graphD = utilsF.dangling_edges(graph_s.copy())
+
+    # create line graph
+    lgG = nx.line_graph(graph_s.copy())
+
+    # calculate the angles between two edges from the graph that is now
+    # represented by edges in the line graph
+    lgG_V = utilsF.lG_edgeVal(lgG.copy(), graphD, posL)
+
+    # run depth first search
+    graphTagg = utilsF.dfs_constrained(graph_s.copy(), lgG_V.copy(), imgBl, posL, angleA, overlap)
+
+    utilsF.draw_graph_filament_nocolor(image, graphTagg, posL, "", 'filament')
+    plt.savefig(os.path.join(output_dir, 'n_graphs', f'graph{index}.png'))
+
+    plt.close('all')
+    no_filaments = len(np.unique(np.asarray(list(graphTagg.edges(data='filament')))[:,2]))
+    print('filament defined: ', no_filaments)
+    return posL, graphTagg, imF
+
 def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,overlap,max_cost,name_cell):
     create_output_dirs(pathsave)
     
-    graph_s = [0]*len(img_o)
     posL = [0]*len(img_o)
-    imgSkel = [0]*len(img_o)
-    imgAF = [0]*len(img_o)
-    imgBl = [0]*len(img_o)
     imF = [0]*len(img_o)
-    mask = [0]*len(img_o)
-    df_pos = [0]*len(img_o)
-    graphD = [0]*len(img_o)
-    lgG = [0]*len(img_o)
-    lgG_V = [0]*len(img_o)
     graphTagg = [0]*len(img_o)
-    no_filaments = [0]*len(img_o)
     
     imgP = pad_timeseries_images(img_o)
         
-    for q in range(len(imgP)):
-        
-        print(q)
-        # 0) create graph
-        graph_s[q], posL[q], imgSkel[q], imgAF[q], imgBl[q],imF[q],mask[q],df_pos[q] = utilsF.creategraph(imgP[q],size=size,eps=eps,thresh_top=thresh_top,sigma=sigma,small=small)
-        utilsF.draw_graph(imgSkel[q],graph_s[q],posL[q],"untagged graph")
+    for i, image in enumerate(imgP):
+        posL[i], graphTagg[i], imF[i] = process_individual_image(image, i, pathsave, size, eps, thresh_top, sigma, small, angleA, overlap)
 
-        # 1) find all dangling edges and mark them
-        graphD[q] = utilsF.dangling_edges(graph_s[q].copy())
-        # 2) create line graph
-        lgG[q] = nx.line_graph(graph_s[q].copy())
-        # 3) calculate the angles between two edges from the graph that is now represented by edges in the line graph
-        lgG_V[q] = utilsF.lG_edgeVal(lgG[q].copy(),graphD[q],posL[q])
-        # 4) run depth first search
-        graphTagg[q] = utilsF.dfs_constrained(graph_s[q].copy(),lgG_V[q].copy(),imgBl[q],posL[q],angleA,overlap) 
-        
-        utilsF.draw_graph_filament_nocolor(imgP[q],graphTagg[q],posL[q],"",'filament')
-        plt.savefig(os.path.join(pathsave, 'n_graphs', f'graph{q}.png'))
-    
-        plt.close('all')
-        no_filaments[q] = len(np.unique(np.asarray(list(graphTagg[q].edges(data='filament')))[:,2]))
-        print('filament defined: ',len(np.unique(np.asarray(list(graphTagg[q].edges(data='filament')))[:,2])))
-         
     pickle.dump(posL, open(os.path.join(pathsave, 'posL.gpickle'), 'wb'))
     ###############################################################################
     #
