@@ -96,10 +96,7 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
     for node1, node2, property in graphTagg[0].edges(data=True):
         for n in range(len(graphTagg[0][node1][node2])):
             graphTagg[0][node1][node2][n]['tags'] = property['filament']
-        
-        
-    list(graphTagg[0].edges(data='filament'))
-        
+
     max_tag = np.max(list(graphTagg[0].edges(data='filament')),axis=0)[2] 
     
     g_tagged = [0]*(len(img_o))
