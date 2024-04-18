@@ -63,6 +63,31 @@ def process_individual_image(image, index, output_dir, size, eps, thresh_top, si
     print('filament defined: ', no_filaments)
     return posL, graphTagg, imF
 
+
+def tag_graphs(img_o, graphTagg, posL, max_cost, memKeep, output_dir):
+    # first graph needs unique tags
+    for node1, node2, property in graphTagg[0].edges(data=True):
+        for n in range(len(graphTagg[0][node1][node2])):
+            graphTagg[0][node1][node2][n]['tags'] = property['filament']
+
+    max_tag = np.max(list(graphTagg[0].edges(data='filament')),axis=0)[2]
+
+    g_tagged = [0]*(len(img_o))
+    g_tagged[0] = graphTagg[0]
+    cost = [0]*(len(img_o)-1)
+    tag_new = [0]*(len(img_o))
+    tag_new[0] = max_tag
+    filamentsNU = []
+    
+    for i in range(len(img_o)-1):
+        g_tagged[i+1],cost[i],tag_new[i+1],filamentsNU = \
+            utilsF.filament_tag(g_tagged[i], graphTagg[i+1],
+                                posL[i], posL[i+1], tag_new[i],
+                                max_cost, filamentsNU, memKeep)
+    
+    pickle.dump(g_tagged, open(os.path.join(output_dir, 'tagged_graph.gpickle'), 'wb'))
+    return g_tagged, tag_new
+
 def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,overlap,max_cost,name_cell):
     create_output_dirs(pathsave)
     
@@ -76,15 +101,6 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
         posL[i], graphTagg[i], imF[i] = process_individual_image(image, i, pathsave, size, eps, thresh_top, sigma, small, angleA, overlap)
 
     pickle.dump(posL, open(os.path.join(pathsave, 'posL.gpickle'), 'wb'))
-    ###############################################################################
-    #
-    # data
-    # tracking 
-    #
-    ###############################################################################
-    # if already saved this, then load in
-    #g_tagged = nx.read_gpickle(pathsave+'tagged_graph.gpickle')
-    #graphTagg = g_tagged.copy()
     
     if(len(img_o)<20):
         memKeep = len(img_o)
@@ -92,25 +108,7 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
         memVal = 20
         memKeep = utilsF.signMem(graphTagg[0:memVal],posL[0:memVal])
     
-    # first graph needs unique tags
-    for node1, node2, property in graphTagg[0].edges(data=True):
-        for n in range(len(graphTagg[0][node1][node2])):
-            graphTagg[0][node1][node2][n]['tags'] = property['filament']
-
-    max_tag = np.max(list(graphTagg[0].edges(data='filament')),axis=0)[2] 
-    
-    g_tagged = [0]*(len(img_o))
-    g_tagged[0] = graphTagg[0]
-    cost = [0]*(len(img_o)-1)
-    tag_new = [0]*(len(img_o))
-    tag_new[0] = max_tag
-    filamentsNU = []
-    
-    for i in range(len(img_o)-1):
-        g_tagged[i+1],cost[i],tag_new[i+1],filamentsNU = utilsF.filament_tag(g_tagged[i],graphTagg[i+1],posL[i],posL[i+1],tag_new[i],max_cost,filamentsNU,memKeep)
-    
-    pickle.dump(g_tagged, open(os.path.join(pathsave, 'tagged_graph.gpickle'), 'wb'))
-    
+    g_tagged, tag_new = tag_graphs(img_o, graphTagg, posL, max_cost, memKeep, pathsave)
     
     for i in range(len(img_o)):
         title = "graph {}".format(i+1)
