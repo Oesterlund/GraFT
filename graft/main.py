@@ -4,10 +4,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import skimage.io as io
 import networkx as nx
 import pandas as pd
-from collections import Counter
 import pickle
 
 from graft import utilsF
@@ -31,79 +29,49 @@ def generate_default_mask(image_shape):
         raise ValueError("Unsupported image shape. Expected 2 or 3 dimensions.")
 
 
-def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,overlap,max_cost,name_cell):
-    create_output_dirs(pathsave)
-    
-    graph_s = [0]*len(img_o)
-    posL = [0]*len(img_o)
-    imgSkel = [0]*len(img_o)
-    imgAF = [0]*len(img_o)
-    imgBl = [0]*len(img_o)
-    imF = [0]*len(img_o)
-    mask = [0]*len(img_o)
-    df_pos = [0]*len(img_o)
-    graphD = [0]*len(img_o)
-    lgG = [0]*len(img_o)
-    lgG_V = [0]*len(img_o)
-    graphTagg = [0]*len(img_o)
-    no_filaments = [0]*len(img_o)
-    
+def pad_timeseries_images(img_o):
     M,N,P = (img_o.shape)
     imgP=np.zeros((M,N+2,P+2))
     
     for m in range(len(img_o)):
         imgP[m] = np.pad(img_o[m], 1, 'constant')
-        
-    for q in range(len(imgP)):
-        
-        print(q)
-        # 0) create graph
-        graph_s[q], posL[q], imgSkel[q], imgAF[q], imgBl[q],imF[q],mask[q],df_pos[q] = utilsF.creategraph(imgP[q],size=size,eps=eps,thresh_top=thresh_top,sigma=sigma,small=small)
-        utilsF.draw_graph(imgSkel[q],graph_s[q],posL[q],"untagged graph")
+    return imgP
 
-        # 1) find all dangling edges and mark them
-        graphD[q] = utilsF.dangling_edges(graph_s[q].copy())
-        # 2) create line graph
-        lgG[q] = nx.line_graph(graph_s[q].copy())
-        # 3) calculate the angles between two edges from the graph that is now represented by edges in the line graph
-        lgG_V[q] = utilsF.lG_edgeVal(lgG[q].copy(),graphD[q],posL[q])
-        # 4) run depth first search
-        graphTagg[q] = utilsF.dfs_constrained(graph_s[q].copy(),lgG_V[q].copy(),imgBl[q],posL[q],angleA,overlap) 
-        
-        utilsF.draw_graph_filament_nocolor(imgP[q],graphTagg[q],posL[q],"",'filament')
-        plt.savefig(os.path.join(pathsave, 'n_graphs', f'graph{q}.png'))
-    
-        plt.close('all')
-        no_filaments[q] = len(np.unique(np.asarray(list(graphTagg[q].edges(data='filament')))[:,2]))
-        print('filament defined: ',len(np.unique(np.asarray(list(graphTagg[q].edges(data='filament')))[:,2])))
-         
-    pickle.dump(posL, open(os.path.join(pathsave, 'posL.gpickle'), 'wb'))
-    ###############################################################################
-    #
-    # data
-    # tracking 
-    #
-    ###############################################################################
-    # if already saved this, then load in
-    #g_tagged = nx.read_gpickle(pathsave+'tagged_graph.gpickle')
-    #graphTagg = g_tagged.copy()
-    
-    if(len(img_o)<20):
-        memKeep = len(img_o)
-    else:
-        memVal = 20
-        memKeep = utilsF.signMem(graphTagg[0:memVal],posL[0:memVal])
-    
+def process_individual_image(image, output_dir, size, eps, thresh_top, sigma, small, angleA, overlap, index=None):
+    # create graph
+    graph_s, posL, imgSkel, imgAF, imgBl, imF, mask, df_pos = utilsF.creategraph(image, size=size, eps=eps, thresh_top=thresh_top, sigma=sigma, small=small)
+
+    # find all dangling edges and mark them
+    graphD = utilsF.dangling_edges(graph_s.copy())
+
+    # create line graph
+    lgG = nx.line_graph(graph_s.copy())
+
+    # calculate the angles between two edges from the graph that is now
+    # represented by edges in the line graph
+    lgG_V = utilsF.lG_edgeVal(lgG.copy(), graphD, posL)
+
+    # run depth first search
+    graphTagg = utilsF.dfs_constrained(graph_s.copy(), lgG_V.copy(), imgBl, posL, angleA, overlap)
+
+    utilsF.draw_graph_filament_nocolor(image, graphTagg, posL, "", 'filament')
+    filename =  f'graph.png' if index is None else f'graph{index}.png'
+    plt.savefig(os.path.join(output_dir, 'n_graphs', filename))
+    plt.close('all')
+
+    no_filaments = len(np.unique(np.asarray(list(graphTagg.edges(data='filament')))[:,2]))
+    print('filament defined: ', no_filaments)
+    return posL, graphTagg, imF
+
+
+def tag_graphs(img_o, graphTagg, posL, max_cost, memKeep, output_dir):
     # first graph needs unique tags
     for node1, node2, property in graphTagg[0].edges(data=True):
         for n in range(len(graphTagg[0][node1][node2])):
             graphTagg[0][node1][node2][n]['tags'] = property['filament']
-        
-        
-    list(graphTagg[0].edges(data='filament'))
-        
-    max_tag = np.max(list(graphTagg[0].edges(data='filament')),axis=0)[2] 
-    
+
+    max_tag = np.max(list(graphTagg[0].edges(data='filament')),axis=0)[2]
+
     g_tagged = [0]*(len(img_o))
     g_tagged[0] = graphTagg[0]
     cost = [0]*(len(img_o)-1)
@@ -112,71 +80,80 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
     filamentsNU = []
     
     for i in range(len(img_o)-1):
-        g_tagged[i+1],cost[i],tag_new[i+1],filamentsNU = utilsF.filament_tag(g_tagged[i],graphTagg[i+1],posL[i],posL[i+1],tag_new[i],max_cost,filamentsNU,memKeep)
+        g_tagged[i+1],cost[i],tag_new[i+1],filamentsNU = \
+            utilsF.filament_tag(g_tagged[i], graphTagg[i+1],
+                                posL[i], posL[i+1], tag_new[i],
+                                max_cost, filamentsNU, memKeep)
     
-    pickle.dump(g_tagged, open(os.path.join(pathsave, 'tagged_graph.gpickle'), 'wb'))
-    
-    
-    for i in range(len(img_o)):
-        title = "graph {}".format(i+1)
-        utilsF.draw_graph_filament_track_nocolor(imgP[i],g_tagged[i],posL[i],title,max(tag_new),padv=50)
-        pathsave_taggraph = os.path.join(pathsave, "mov", f"trackgraph{i+1}.png")
-        plt.savefig(pathsave_taggraph)
-        plt.close('all')
-    
-    
-    ###############################################################################
-    #
-    # data analysis
-    #
-    ###############################################################################
-    
-    plt.rc('xtick', labelsize=24) 
-    plt.rc('ytick', labelsize=24) 
-        
-        
-        
-    unique_filaments = [0]*len(img_o)
-    unique_frames = []
-    
-    for i in range(len(img_o)):
-        unique_filaments[i] = len(np.unique(np.asarray(list(g_tagged[i].edges(data='tags')))[:,2]))
-        unique_frames.extend(list(np.unique(np.asarray(list(g_tagged[i].edges(data='tags')))[:,2])))
-    
-    
-    plt.figure(figsize=(10,10))
-    plt.scatter(np.arange(0,len(unique_filaments)),unique_filaments)
-    plt.xlabel('frames',size=24)
-    plt.ylabel('# filaments',size=24)
-    plt.savefig(os.path.join(pathsave, 'plots', 'filaments_per_frame.png'))
-    
-    
-    ###############################################################################
-    #
-    # data analysis - one frame at a time
-    #
-    ###############################################################################
-    
-    pd_fil_info = utilsF.filament_info_time(imgP, g_tagged, posL, pathsave, imF, maskDraw)
-    
-    pd_fil_info = pd.read_csv(os.path.join(pathsave, 'tracked_filaments_info.csv'))
+    pickle.dump(g_tagged, open(os.path.join(output_dir, 'tagged_graph.gpickle'), 'wb'))
+    return g_tagged, tag_new
 
-    vals = Counter(pd_fil_info['filament']).values()
+
+def setup_plot(figsize=(10, 10), x_label='', y_label='', label_size=24):
+    plt.figure(figsize=figsize)
+    plt.xlabel(x_label, size=label_size)
+    plt.ylabel(y_label, size=label_size)
+    plt.rc('xtick', labelsize=label_size)
+    plt.rc('ytick', labelsize=label_size)
+
+
+def save_and_close_plot(path):
+    plt.savefig(path)
+    plt.close('all')
+
+
+def create_histogram(data, path, bins=20, density=False, color='green', title=''):
+    counts, bins = np.histogram(list(data), bins, density=density)
+    setup_plot((10, 7), 'frames', title)
+    plt.hist(bins[:-1], bins, weights=counts, color=color)
+    save_and_close_plot(path)
+
+
+def create_scatter_plot(x_data, y_data, path, title='', x_label='frames', y_label=''):
+    setup_plot(x_label=x_label, y_label=y_label)
+    plt.scatter(x_data, y_data)
+    save_and_close_plot(path)
+
+
+def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,overlap,max_cost,name_cell):
+    create_output_dirs(pathsave)
     
-    counts,bins = np.histogram(list(vals),20)
-    plt.figure(figsize=(10,7))
-    plt.hist(bins[:-1], bins, weights=counts,color='green')
-    plt.xlabel('frames',size=24)
-    plt.ylabel('filaments survival',size=24)
-    plt.savefig(os.path.join(pathsave, 'plots', 'survival_filaments.png'))
+    posL = [0]*len(img_o)
+    imF = [0]*len(img_o)
+    graphTagg = [0]*len(img_o)
     
-    counts,bins = np.histogram(list(vals),20,density='True')
-    plt.figure(figsize=(10,7))
-    plt.hist(bins[:-1], bins, weights=counts,color='green')
-    plt.xlabel('frames',size=24)
-    plt.ylabel('filaments survival',size=24)
-    plt.savefig(os.path.join(pathsave, 'plots', 'survival_filaments_normalized.png'))
+    imgP = pad_timeseries_images(img_o)
+        
+    for i, image in enumerate(imgP):
+        posL[i], graphTagg[i], imF[i] = process_individual_image(image, pathsave, size, eps, thresh_top, sigma, small, angleA, overlap, i)
+
+    pickle.dump(posL, open(os.path.join(pathsave, 'posL.gpickle'), 'wb'))
     
+    if(len(img_o)<20):
+        memKeep = len(img_o)
+    else:
+        memVal = 20
+        memKeep = utilsF.signMem(graphTagg[0:memVal],posL[0:memVal])
+    
+    g_tagged, tag_new = tag_graphs(img_o, graphTagg, posL, max_cost, memKeep, pathsave)
+
+    for i, _image in enumerate(img_o):
+        utilsF.draw_graph_filament_track_nocolor(imgP[i], g_tagged[i], posL[i], f"graph {i+1}", max(tag_new), padv=50)
+        save_and_close_plot(os.path.join(pathsave, "mov", f"trackgraph{i+1}.png"))
+
+    # filaments per frame plot
+    unique_filaments = [len(np.unique(np.asarray(list(g.edges(data='tags')))[:, 2])) for g in g_tagged]
+    create_scatter_plot(np.arange(0, len(unique_filaments)), unique_filaments, os.path.join(pathsave, 'plots', 'filaments_per_frame.png'), y_label='# filaments')
+
+    pd_fil_info = utilsF.filament_info_time(imgP, g_tagged, posL, pathsave, imF, maskDraw)
+    pd_fil_info.to_csv(os.path.join(pathsave, 'tracked_filaments_info.csv'), index=False)
+
+    # filaments survival plot
+    filament_counts = pd_fil_info['filament'].value_counts()
+    create_histogram(filament_counts, os.path.join(pathsave, 'plots', 'survival_filaments.png'), title='filaments survival')
+    create_histogram(filament_counts, os.path.join(pathsave, 'plots', 'survival_filaments_normalized.png'), density=True, title='filaments survival')
+    
+    # filament density plot
     dens = np.zeros(len(img_o))
     fil_len = np.zeros(len(img_o))
     fil_I = np.zeros(len(img_o))
@@ -184,51 +161,27 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
         dens[i] = pd_fil_info[pd_fil_info['frame number']==i]['filament density'].values[0]
         fil_len[i] =np.median(pd_fil_info[pd_fil_info['frame number']==i]['filament length'])
         fil_I[i] = np.median(pd_fil_info[pd_fil_info['frame number']==i]['filament intensity per length'])
-        
-        
-    plt.figure(figsize=(10,10))
-    plt.scatter(np.arange(0,len(img_o)),dens)
-    plt.xlabel('frames',size=24)
-    plt.ylabel('filament density',size=24)
-    plt.savefig(os.path.join(pathsave, 'plots', 'filament_density.png'))
+    create_scatter_plot(np.arange(len(img_o)), dens, os.path.join(pathsave, 'plots', 'filament_density.png'), y_label='filament density')
     
-    plt.figure(figsize=(10,10))
-    plt.scatter(np.arange(0,len(img_o)),fil_len)
-    plt.xlabel('frames',size=24)
-    plt.ylabel('filament median length',size=24)
-    plt.savefig(os.path.join(pathsave, 'plots', 'filamentlength.png'))
-    
-    
+    # filament length plot
+    create_scatter_plot(np.arange(len(img_o)), fil_len, os.path.join(pathsave, 'plots', 'filamentlength.png'), y_label='filament median length')    
+
+    # circular mean angle plot    
     mean_angle,var_val = utilsF.circ_stat_plot(pathsave,pd_fil_info)
-    
-    line_mean = np.mean(mean_angle)
-    
-    plt.figure(figsize=(10,10))
-    plt.scatter(np.arange(0,len(mean_angle)),mean_angle)
-    plt.plot(np.arange(0,len(mean_angle)),np.ones(len(mean_angle))*line_mean,color='black',linestyle='dashed')
-    plt.xlabel('Frames',size=24)
-    plt.ylabel('Circular mean angle',size=24)
-    plt.savefig(os.path.join(pathsave, 'plots', 'angles_mean.png'))
-    
-    plt.figure(figsize=(10,10))
-    plt.scatter(np.arange(0,len(var_val)),var_val)
-    plt.xlabel('frames',size=24)
-    plt.ylabel('circular variance of angles',size=24)
-    plt.savefig(os.path.join(pathsave, 'plots', 'angles_var.png'))
-    
-    tagsU = pd_fil_info['filament'].unique()
-    vals = np.zeros(len(tagsU))
-    lives = np.zeros(len(tagsU))
-    plt.figure(figsize=(10,10))
-    for s,m in zip(tagsU,range(len(tagsU))):
-        fil = pd_fil_info[pd_fil_info['filament']==s]['filament length'].values
-        #print(fil)np.median(fil
-        vals[m]=np.median(fil)
-        lives[m]=len(fil)
-        plt.plot(np.arange(0,len(fil)),fil)
-    plt.xlabel('Survival frames',size=24)
-    plt.ylabel('filament length',size=24)
-    plt.savefig(os.path.join(pathsave, 'plots', 'survival_len.png'))
+    setup_plot((10, 10), 'Frames', 'Circular mean angle')
+    plt.scatter(np.arange(len(mean_angle)), mean_angle)
+    plt.plot(np.arange(len(mean_angle)), np.full(len(mean_angle), np.mean(mean_angle)), color='black', linestyle='dashed')
+    save_and_close_plot(os.path.join(pathsave, 'plots', 'angles_mean.png'))
+
+    # circular variance of angles plot
+    create_scatter_plot(np.arange(len(var_val)), var_val, os.path.join(pathsave, 'plots', 'angles_var.png'), y_label='circular variance of angles')
+
+    # survival length plot for each unique filament
+    setup_plot((10, 10), 'Survival frames', 'filament length')
+    for s in pd_fil_info['filament'].unique():
+        fil = pd_fil_info[pd_fil_info['filament'] == s]['filament length'].values
+        plt.plot(np.arange(len(fil)), fil)
+    save_and_close_plot(os.path.join(pathsave, 'plots', 'survival_len.png'))
     
     ###############################################################################
     #
@@ -245,8 +198,6 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
     df_angles2['name'] = name_cell
     
     df_angles2.to_csv(os.path.join(pathsave, 'value_per_frame.csv'),index=False)
-    
-    return
 
 
 def create_all_still(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,overlap,name_cell):
@@ -254,50 +205,19 @@ def create_all_still(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,ang
     
     N,P = (img_o.shape)
     imgP=np.zeros((N+2,P+2))
-    
-
     imgP = np.pad(img_o, 1, 'constant')
-        
-    # 0) create graph
-    graph_s, posL, imgSkel, imgAF, imgBl,imF,mask,df_pos = utilsF.creategraph(imgP,size=size,eps=eps,thresh_top=thresh_top,sigma=sigma,small=small)
-    #utilsF.draw_graph(imgSkel[q],graph_s[q],posL[q],"untagged graph")
-    #plt.savefig(pathsave+'n_graphs/untaggedgraph{0}.png'.format(q))
-    # 1) find all dangling edges and mark them
-    graphD = utilsF.dangling_edges(graph_s.copy())
-    # 2) create line graph
-    lgG = nx.line_graph(graph_s.copy())
-    # 3) calculate the angles between two edges from the graph that is now represented by edges in the line graph
-    lgG_V = utilsF.lG_edgeVal(lgG.copy(),graphD,posL)
-    # 4) run depth first search
-    graphTagg = utilsF.dfs_constrained(graph_s.copy(),lgG_V.copy(),imgBl,posL,angleA,overlap) 
-    
-    utilsF.draw_graph_filament_nocolor(imgP,graphTagg,posL,"",'filament')
-    plt.savefig(os.path.join(pathsave, 'n_graphs', 'graph.png'))
 
-    plt.close('all')
-    print('filament defined: ',len(np.unique(np.asarray(list(graphTagg.edges(data='filament')))[:,2])))
+    posL, graphTagg, imF = process_individual_image(imgP, pathsave, size, eps, thresh_top, sigma, small, angleA, overlap)
     
-    
-    ###############################################################################
-    #
-    # data analysis - one frame at a time
-    #
-    ###############################################################################
     
     pd_fil_info = utilsF.filament_info(imgP, graphTagg, posL, pathsave,imF,maskDraw)
-    
-    
     pd_fil_info = pd.read_csv(os.path.join(pathsave, 'traced_filaments_info.csv'))
     
     mean_len = np.mean(pd_fil_info['filament length'])
-    
     list_len = np.sort(pd_fil_info['filament length'])
     plt.figure()
     plt.scatter( np.arange(0,len(list_len)),list_len)
     
     
-    mean_angle,var_val = utilsF.circ_stat(pd_fil_info,pathsave)
-    
+    mean_angle,var_val = utilsF.circ_stat(pd_fil_info,pathsave)    
     print('mean angle: ', mean_angle, 'circ var: ', var_val, 'mean length: ', mean_len)
-    
-    return

@@ -1,24 +1,19 @@
+"""
+This module contains regression tests for the function `graft.main.create_all`.
+"""
+
 import os
-import filecmp
-import hashlib
 import shutil
 import pickle
 
 import networkx as nx
 import numpy as np
-from skimage.color import rgb2gray
 import skimage.io as io
-from skimage.metrics import structural_similarity as ssim
-import pandas as pd
 import pytest
 
 from graft.main import create_all
+from tests import assert_csv_files_equal, compare_images
 
-
-def files_equal(file1_path, file2_path):
-    """Return True iff both files are identical."""
-    with open(file1_path, 'rb') as f1, open(file2_path, 'rb') as f2:
-        return hashlib.sha256(f1.read()).hexdigest() == hashlib.sha256(f2.read()).hexdigest()
 
 @pytest.fixture(scope="module")  # fixture to setup and teardown test env
 def test_env():
@@ -26,8 +21,8 @@ def test_env():
     test_dir = os.path.dirname(os.path.realpath(__file__))
 
     image_path = os.path.join(test_dir, "..", "graft", "tiff", "timeseries.tif")
-    test_output_dir = os.path.join(test_dir, "..", "test_output")
-    expected_output_dir = os.path.join(test_dir, "expected_output")
+    test_output_dir = os.path.join(test_dir, "..", "test_output", "create_all")
+    expected_output_dir = os.path.join(test_dir, "expected_output", "create_all")
 
     os.makedirs(test_output_dir, exist_ok=True)
 
@@ -48,18 +43,10 @@ def test_env():
 def test_regression_csv_files(test_env):
     output_dir, expected_dir = test_env
 
-    # use pandas to compare CSV files with a tolerance for floating point errors
     for csv_fname in ("tracked_filaments_info.csv", "value_per_frame.csv"):
         generated_file = os.path.join(output_dir, csv_fname)
         expected_file = os.path.join(expected_dir, csv_fname)
-
-        generated_df = pd.read_csv(generated_file)
-        expected_df = pd.read_csv(expected_file)
-
-        try:
-            pd.testing.assert_frame_equal(generated_df, expected_df, check_dtype=False, atol=1e-5)
-        except AssertionError as e:
-            raise AssertionError(f"{csv_fname} does not match expected output. {e}")
+        assert_csv_files_equal(generated_file, expected_file)
 
 def test_posL_pickle_file(test_env):
     output_dir, expected_dir = test_env
@@ -103,35 +90,6 @@ def test_tagged_graph_pickle_file(test_env):
 
             assert len(generated_edges) == len(expected_edges), f"Edges between nodes {u} and {v} do not match in count."
             compare_edge_attributes(generated_edges, expected_edges)
-
-
-def compare_images(image_path_1, image_path_2, method='ssim', tolerance=0.99):
-    """
-    Compare two images using either direct numpy comparison or SSIM.
-    :param image_path_1: Path to the first image.
-    :param image_path_2: Path to the second image.
-    :param method: 'ssim' for Structural Similarity Index or 'direct' for direct numpy comparison.
-    :param tolerance: Tolerance threshold for SSIM. Images are considered similar if SSIM >= tolerance.
-    :return: True if images are considered equal, False otherwise.
-    """
-    img1 = io.imread(image_path_1)
-    img2 = io.imread(image_path_2)
-
-    # remove alpha channel if images have 4 channels (RGBA)
-    if img1.shape[-1] == 4:
-        img1 = img1[..., :3]
-    if img2.shape[-1] == 4:
-        img2 = img2[..., :3]
-
-    if method == 'direct':
-        return np.array_equal(img1, img2)
-    elif method == 'ssim':
-        # convert images to grayscale to compute SSIM
-        img1_gray = rgb2gray(img1)
-        img2_gray = rgb2gray(img2)
-
-        ssim_index = ssim(img1_gray, img2_gray)
-        return ssim_index >= tolerance
 
 def test_plot_images(test_env):
     """
