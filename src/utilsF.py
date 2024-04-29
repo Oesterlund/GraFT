@@ -2313,8 +2313,7 @@ def barplot180(list_points, list_bins, output_path, color_code):
         # yellow '#FFFF00'
         # blue 	#0000FF
     ))
-    fig.show()
-    
+
     fig.update_layout(
         polar = dict(radialaxis = dict(showticklabels=False, ticks=''), sector = [0,180],
                      radialaxis_showgrid=False,
