@@ -67,7 +67,7 @@ if uploaded_file is not None:
             for tab, subdir in zip(tabs, subdirs):
                 with tab:
                     st.subheader(f"{subdir.replace('_', ' ').title()} Output")
-                    subdir_path = Path("output") / subdir
+                    subdir_path = Path(output_dir) / subdir
                     images = list(subdir_path.glob('*.png'))
 
                     # sort images naturally by filename

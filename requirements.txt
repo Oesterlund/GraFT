@@ -10,3 +10,4 @@ astropy==5.1
 Scikit-spatial==6.8.0
 kaleido==0.2.1
 pytest==8.1.1
+streamlit==1.33.0
