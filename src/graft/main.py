@@ -123,7 +123,9 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
     graphTagg = [0]*len(img_o)
     
     imgP = pad_timeseries_images(img_o)
-        
+
+    # eps: (epsilon) threshold for Visvalingam-Whyatt algorithm for determining
+    # which points on a curve can be removed w/out significantly altering its shape
     for i, image in enumerate(imgP):
         posL[i], graphTagg[i], imF[i] = process_individual_image(image, pathsave, size, eps, thresh_top, sigma, small, angleA, overlap, i)
 

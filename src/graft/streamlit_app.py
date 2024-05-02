@@ -10,7 +10,8 @@ import numpy as np
 import tifffile as tiff
 from skimage import io as skimage_io
 
-from graft.main import create_all, create_output_dirs
+from graft.main import (
+    create_all, create_all_still, create_output_dirs, generate_default_mask)
 
 
 # regex to find numbers in a string
@@ -50,7 +51,8 @@ def main():
     overlap = st.sidebar.slider('Overlap', 1, 10, 4)
     max_cost = st.sidebar.slider('Max Cost', 50, 200, 100)
     size = st.sidebar.slider('Merge Radius (Size)', 1, 30, 6)
-
+    eps = st.sidebar.slider('Epsilon', 1, 400, 200)
+    thresh_top = st.sidebar.slider('thresh_top', 0.0, 1.0, 0.5)
 
     if uploaded_file is not None:
         bytes_data = BytesIO(uploaded_file.getvalue())
@@ -58,27 +60,34 @@ def main():
         try:
             # Use tifffile to read the TIFF file
             img_o = tiff.imread(bytes_data)
-            
-            if img_o.ndim != 3:
-                raise ValueError(f"Uploaded image is not a time-series. Expected image with 3 dimensions (frames, height, width), got dimensions: {img_o.shape}.")
 
-            mask = np.ones(img_o.shape[1:])  # generate a mask for the time-series image
+            if img_o.ndim not in (2,3):
+                raise ValueError(f"Uploaded image is not a tiff still image or time-series. Expected image with 2 or 3 dimensions, got: {img_o.shape}.")
+
+            mask = generate_default_mask(img_o.shape)
 
             # create temp directory structure for output files
             with tempfile.TemporaryDirectory() as temp_dir:
                 output_dir = Path(temp_dir)
                 create_output_dirs(str(output_dir))
 
-                with st.spinner('Running analysis... Please wait'):
-                    # eps: threshold for Visvalingam-Whyatt algorithm for determining
-                    # which points on a curve can be removed w/out significantly altering its shape
-                    create_all(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
-                               size=size, eps=200, thresh_top=0.5, sigma=sigma, small=small,
-                               angleA=angleA, overlap=overlap, max_cost=max_cost, name_cell='in silico time')
-                    st.success("Analysis completed!")
+                if img_o.ndim == 3:  # input image represents a time series
+                    subdirs = ['n_graphs', 'circ_stat', 'mov', 'plots']
+                    with st.spinner('Running analysis... Please wait'):
+                        create_all(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
+                                   size=size, eps=eps, thresh_top=thresh_top, sigma=sigma, small=small,
+                                   angleA=angleA, overlap=overlap, max_cost=max_cost, name_cell='in silico time')
+                        st.success("Analysis completed!")
+                else:  # img_o.ndim == 2, i.e. input image is a still image
+                    subdirs = ['n_graphs', 'circ_stat']
+                    with st.spinner('Running analysis... Please wait'):
+                        # `create_all_still` has the same parameters as `create_all`, except for `max_cost`
+                        create_all_still(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
+                                   size=size, eps=eps, thresh_top=thresh_top, sigma=sigma, small=small,
+                                   angleA=angleA, overlap=overlap, name_cell='in silico still')
+                        st.success("Analysis completed!")
 
                 # Display images from all subdirectories using tabs
-                subdirs = ['n_graphs', 'circ_stat', 'mov', 'plots']
                 tab_titles = [f"{subdir.replace('_', ' ').title()}" for subdir in subdirs]
                 tabs = st.tabs(tab_titles)  # Create a tab for each subdirectory
 
