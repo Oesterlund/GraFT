@@ -4,6 +4,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import time
 
 import streamlit as st
 import numpy as np
@@ -74,18 +75,19 @@ def main():
                 if img_o.ndim == 3:  # input image represents a time series
                     subdirs = ['n_graphs', 'circ_stat', 'mov', 'plots']
                     with st.spinner('Running analysis... Please wait'):
+                        start_time = time.time()
                         create_all(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
                                    size=size, eps=eps, thresh_top=thresh_top, sigma=sigma, small=small,
                                    angleA=angleA, overlap=overlap, max_cost=max_cost, name_cell='in silico time')
-                        st.success("Analysis completed!")
+                        st.success(f"Analysis completed! Time taken: {time.time() - start_time:.2f} seconds.")
                 else:  # img_o.ndim == 2, i.e. input image is a still image
                     subdirs = ['n_graphs', 'circ_stat']
                     with st.spinner('Running analysis... Please wait'):
-                        # `create_all_still` has the same parameters as `create_all`, except for `max_cost`
+                        start_time = time.time()
                         create_all_still(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
                                    size=size, eps=eps, thresh_top=thresh_top, sigma=sigma, small=small,
                                    angleA=angleA, overlap=overlap, name_cell='in silico still')
-                        st.success("Analysis completed!")
+                        st.success(f"Analysis completed! Time taken: {time.time() - start_time:.2f} seconds.")
 
                 # Display images from all subdirectories using tabs
                 tab_titles = [f"{subdir.replace('_', ' ').title()}" for subdir in subdirs]
