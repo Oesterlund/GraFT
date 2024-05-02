@@ -28,3 +28,7 @@ dependencies = [
     "streamlit==1.33.0",
     "pytest>=8.0"
 ]
+
+[project.entry-points.console_scripts]
+graft-cli = "graft.cli:main"
+graft-webapp = "graft.streamlit_app:run"

@@ -1,6 +1,8 @@
 from io import BytesIO
 from pathlib import Path
 import re
+import subprocess
+import sys
 import tempfile
 
 import streamlit as st
@@ -18,6 +20,15 @@ def natural_sort_key(s):
     """Extracts a mixed numeric and non-numeric sorting key from strings."""
     return [int(text) if text.isdigit() else text.lower()
             for text in re.split(INTEGER_RE, str(s))]
+
+def run():
+    """
+    Wrapper function to make this Streamlit app callable like a
+    standalone application (via an entrypoint in pyproject.toml).
+    """
+    cmd = ["streamlit", "run", "src/graft/streamlit_app.py"]
+    subprocess.run(cmd)
+
 
 # Main Page
 st.title('GraFT: Graph of Filaments over Time')
