@@ -779,70 +779,6 @@ def condense_mask(index_list,imageNodeCondense,mask,size):
     return df_new
 
 def capture_io(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        # Create a unique identifier for each call based on argument data
-        id_hash = hash(tuple([np.array2string(arg) if isinstance(arg, np.ndarray) else arg for arg in args] +
-                             [(k, np.array2string(v) if isinstance(v, np.ndarray) else v) for k, v in kwargs.items()]))
-
-        # Directory to store the pickle files
-        dir_path = 'node_condense_data'
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
-
-        # Filenames for input and output
-        input_filename = f"{dir_path}/input_{id_hash}.pickle"
-        output_filename = f"{dir_path}/output_{id_hash}.pickle"
-
-        # Save inputs
-        with open(input_filename, 'wb') as f:
-            pickle.dump({'args': args, 'kwargs': kwargs}, f)
-
-        # Call the original function
-        result = func(*args, **kwargs)
-
-        # Save output
-        with open(output_filename, 'wb') as f:
-            pickle.dump(result, f)
-
-        return result
-
-    return wrapper
-
-def capture_io_sparse(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
-        # Unique identifier for each call based on argument data
-        id_hash = hash(tuple([np.array2string(arg) if isinstance(arg, np.ndarray) else arg for arg in args] +
-                             [(k, np.array2string(v) if isinstance(v, np.ndarray) else v) for k, v in kwargs.items()]))
-
-        dir_path = 'node_condense_sparse'
-        if not os.path.exists(dir_path):
-            os.makedirs(dir_path)
-
-        input_filename = f"{dir_path}/input_{id_hash}.pickle"
-        output_filename = f"{dir_path}/output_{id_hash}.pickle"
-
-        # Convert numpy arrays to sparse format if they are sparse
-        args_sparse = [(sparse.csr_matrix(arg) if isinstance(arg, np.ndarray) and (arg.size == 0 or np.count_nonzero(arg) / arg.size < 0.1) else arg) for arg in args]
-        kwargs_sparse = {k: (sparse.csr_matrix(v) if isinstance(v, np.ndarray) and (v.size == 0 or np.count_nonzero(v) / v.size < 0.1) else v) for k, v in kwargs.items()}
-
-        # Save inputs in sparse format if possible
-        with open(input_filename, 'wb') as f:
-            pickle.dump({'args': args_sparse, 'kwargs': kwargs_sparse}, f)
-
-        result = func(*args, **kwargs)
-
-        # Save output in sparse format if it's sparse
-        result_sparse = sparse.csr_matrix(result) if isinstance(result, np.ndarray) and (result.size == 0 or np.count_nonzero(result) / result.size < 0.1) else result
-        with open(output_filename, 'wb') as f:
-            pickle.dump(result_sparse, f)
-
-        return result
-
-    return wrapper
-
-def capture_io(func):
     counter = [0]  # Use a mutable type to keep count across calls
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -873,8 +809,38 @@ def capture_io(func):
 
     return wrapper
 
+def capture_io_sparse(func):
+    counter = [0]  # Use a mutable type to keep count across calls
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        counter[0] += 1
 
-@capture_io
+        dir_path = 'node_condense_sparse_data'
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+
+        input_filename = f"{dir_path}/input_{counter[0]}.pickle"
+        output_filename = f"{dir_path}/output_{counter[0]}.pickle"
+
+        # Convert numpy arrays to sparse matrices and save inputs
+        args_sparse = [(sparse.csr_matrix(arg) if isinstance(arg, np.ndarray) else arg) for arg in args]
+        kwargs_sparse = {k: (sparse.csr_matrix(v) if isinstance(v, np.ndarray) else v) for k, v in kwargs.items()}
+
+        with open(input_filename, 'wb') as f:
+            pickle.dump({'args': args_sparse, 'kwargs': kwargs_sparse}, f)
+
+        result = func(*args, **kwargs)
+
+        # Convert the output to a sparse matrix if it's a numpy array and save
+        result_sparse = sparse.csr_matrix(result) if isinstance(result, np.ndarray) else result
+        with open(output_filename, 'wb') as f:
+            pickle.dump(result_sparse, f)
+
+        return result
+
+    return wrapper
+
+@capture_io_sparse
 def node_condense(imageFiltered,imageSkeleton,kernel):
     '''
     Condensation of nodes based on kernel size set by user.
