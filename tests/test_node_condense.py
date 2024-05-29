@@ -6,8 +6,8 @@ from scipy import sparse
 from time import time
 from memory_profiler import memory_usage
 
-# Import both versions of node_condense for comparison
-from graft import utilsF
+# import both versions of node_condense for comparison
+from graft import utilsF, utilsF_performance
 
 def profile_memory(func, *args, **kwargs):
     def wrapper():
@@ -26,6 +26,8 @@ def run_node_condense_test(node_condense_func):
     test_files = os.listdir(node_condense_capture_path)
 
     input_files = [f for f in test_files if f.startswith('input_')]
+    total_time_taken = 0
+    total_memory_used = 0
     results = []
 
     for input_file in input_files:
@@ -49,7 +51,8 @@ def run_node_condense_test(node_condense_func):
         end_time = time()
 
         time_taken = end_time - start_time
-        memory_used = peak_memory  # Memory in MiB
+        total_time_taken += time_taken
+        total_memory_used = max(total_memory_used, peak_memory)  # Use the highest peak memory used across all files
 
         # Verify correctness
         np.testing.assert_array_equal(actual_output, expected_output, err_msg="Output from node_condense does not match the expected output.")
@@ -57,20 +60,27 @@ def run_node_condense_test(node_condense_func):
         results.append({
             'input_file': input_file,
             'time_taken': time_taken,
-            'memory_used': memory_used
+            'memory_used': peak_memory
         })
 
-    return results
+    return total_time_taken, total_memory_used
+
+
 
 def test_node_condense_performance():
     # List of node_condense function versions to test
     node_condense_versions = [
-        ('node_condense', utilsF.node_condense),
+        ('node_condense_original', utilsF_performance.node_condense_original),
+        # ~ ('node_condense_01', utilsF_performance.node_condense_01),
+        # ~ ('node_condense_02', utilsF_performance.node_condense_02),
+        ('node_condense_03', utilsF_performance.node_condense_03),
+        # ~ ('node_condense_04', utilsF_performance.node_condense_04),
+        ('node_condense_05', utilsF_performance.node_condense_05),
+        ('node_condense_07', utilsF_performance.node_condense_07),
         # Add other versions here, e.g., ('optimized_node_condense', optimized_node_condense)
     ]
 
     for name, node_condense_func in node_condense_versions:
-        results = run_node_condense_test(node_condense_func)
-        # Print performance results for each version
-        for result in results:
-            print(f"Test case {result['input_file']} with {name} - Time taken: {result['time_taken']:.4f} seconds, Memory used: {result['memory_used']:.4f} MiB")
+        total_time_taken, total_memory_used = run_node_condense_test(node_condense_func)
+        # Print consolidated performance results for each version
+        print(f"\nTotal time taken by {name}: {total_time_taken:.4f} seconds, Peak memory used: {total_memory_used:.4f} MiB")
