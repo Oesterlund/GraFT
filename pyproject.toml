@@ -26,7 +26,8 @@ dependencies = [
     "Scikit-spatial==6.8.0",
     "kaleido==0.2.1",
     "streamlit==1.33.0",
-    "pytest>=8.0"
+    "pytest>=8.0",
+    "memory_profiler==0.61.0"
 ]
 
 [project.entry-points.console_scripts]
