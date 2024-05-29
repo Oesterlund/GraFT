@@ -754,3 +754,186 @@ def node_condense_07(imageFiltered, imageSkeleton, kernel):
 
     return imgSL - imageSkeleton
 
+
+def node_condense_08(imageFiltered, imageSkeleton, kernel):
+    """
+    WARNING: none of the changes suggested from prompting GPT-4o with node_condense_07
+    provided a working improvement!
+
+    Optimized version of utilsF.node_condense with loop replacements using numpy functions.
+    """
+    from scipy import ndimage
+    import numpy as np
+    import skimage.measure
+    import math
+
+    imageLabeled, labels = ndimage.label(imageFiltered, structure=np.ones((3, 3)))
+    imgSL = imageLabeled + imageSkeleton
+
+    half = len(kernel) // 2
+    M, N = imgSL.shape
+
+    for l in range(half, M - half):
+        for k in range(half, N - half):
+            small = imgSL[l - half:l + half + 1, k - half:k + half + 1]
+            small_sum = np.sum(small > 1)
+
+            if small_sum > 2:
+                location = np.argwhere(small > 1)
+                slices = np.array([imgSL[l - half + loc[0] - 1:l - half + loc[0] + 2, k - half + loc[1] - 1:k - half + loc[1] + 2] for loc in location])
+                local_sums = np.sum(slices > 0, axis=(1, 2))
+                connectivity = dict(zip(map(tuple, location), local_sums))
+
+                to_update = np.array([coord for coord in location if connectivity[tuple(coord)] == 2])
+                if to_update.size > 0:
+                    imgSL[(l - half + to_update[:, 0], k - half + to_update[:, 1])] = 1
+
+                location = np.argwhere(small > 1)
+                center_index = np.floor(len(location) / 2).astype(int)
+                if len(location) > 0:
+                    location = np.delete(location, center_index, axis=0)
+                    imgSL[(l - half + location[:, 0], k - half + location[:, 1])] = 1
+
+            elif small_sum == 2:
+                location = np.argwhere(small > 1)
+                coord1, coord2 = location[0], location[1]
+
+                slices = np.array([imgSL[l - half + coord[0] - 1:l - half + coord[0] + 2, k - half + coord[1] - 1:k - half + coord[1] + 2] for coord in location])
+                node1conn, node2conn = np.sum(slices[0] > 0), np.sum(slices[1] > 0)
+
+                if node1conn > 2 and node2conn > 2:
+                    y_min, y_max = min(l - half + coord1[0], l - half + coord2[0]), max(l - half + coord1[0], l - half + coord2[0])
+                    x_min, x_max = min(k - half + coord1[1], k - half + coord2[1]), max(k - half + coord1[1], k - half + coord2[1])
+                    zoom = imgSL[y_min:y_max + 1, x_min:x_max + 1] > 0
+                    conV = skimage.measure.label(zoom, connectivity=2)
+
+                    if np.max(conV) == 1:
+                        com = ndimage.center_of_mass(conV)
+                        if coord1[1] < coord2[1]:
+                            coordinateC = (math.ceil(com[0]) + coord1[0], math.ceil(com[1]) + coord1[1])
+                            coordinateF = (math.floor(com[0]) + coord1[0], math.floor(com[1]) + coord1[1])
+                        else:
+                            coordinateC = (math.ceil(com[0]) + coord1[0], -math.ceil(com[1]) + coord1[1])
+                            coordinateF = (math.floor(com[0]) + coord1[0], -math.floor(com[1]) + coord1[1])
+
+                        if imgSL[l - half + coordinateC[0], k - half + coordinateC[1]] > 0:
+                            val = imgSL[l - half + coord1[0], k - half + coord1[1]]
+                            imgSL[l - half + coord1[0], k - half + coord1[1]] = 1
+                            imgSL[l - half + coord2[0], k - half + coord2[1]] = 1
+                            imgSL[l - half + coordinateC[0], k - half + coordinateC[1]] = val
+                        elif imgSL[l - half + coordinateF[0], k - half + coordinateF[1]] > 0:
+                            val = imgSL[l - half + coord1[0], k - half + coord1[1]]
+                            imgSL[l - half + coord1[0], k - half + coord1[1]] = 1
+                            imgSL[l - half + coord2[0], k - half + coord2[1]] = 1
+                            imgSL[l - half + coordinateF[0], k - half + coordinateF[1]] = val
+                    elif np.max(conV) == 2:
+                        arr, num = skimage.measure.label(small > 0, return_num=True, connectivity=2)
+                        if num == 1:
+                            imgSL[l - half + coord2[0], k - half + coord2[1]] = 1
+                else:
+                    arr, num = skimage.measure.label(small > 0, return_num=True, connectivity=2)
+                    if num == 1:
+                        if node1conn == 2:
+                            imgSL[l - half + coord1[0], k - half + coord1[1]] = 1
+                        if node2conn == 2:
+                            imgSL[l - half + coord2[0], k - half + coord2[1]] = 1
+
+    return imgSL - imageSkeleton
+
+
+import numpy as np
+from scipy import ndimage
+import skimage.measure
+import math
+
+def calculate_small_sum_and_location(imgSL, l, k, half):
+    small = imgSL[l - half:l + half, k - half:k + half]
+    small_sum = np.sum(small > 1)
+    location = np.argwhere(small > 1)
+    return small, small_sum, location
+
+def calculate_connectivity(imgSL, l, k, half, location):
+    local_sums = np.array([
+        np.sum(imgSL[l - half + coord[0] - 1:l - half + coord[0] + 2, k - half + coord[1] - 1:k - half + coord[1] + 2] > 0)
+        for coord in location
+    ])
+    return dict(zip(map(tuple, location), local_sums))
+
+def update_imgSL_based_on_connectivity(imgSL, l, k, half, location, connectivity):
+    to_update = [coord for coord in location if connectivity[tuple(coord)] == 2]
+    to_update = np.array(to_update)
+    if to_update.size > 0:
+        imgSL[(l - half + to_update[:, 0], k - half + to_update[:, 1])] = 1
+
+    location = np.argwhere(imgSL[l - half:l + half, k - half:k + half] > 1)
+    center_index = np.floor(len(location) / 2).astype(int)
+    if len(location) > 0:
+        location = np.delete(location, center_index, axis=0)
+        imgSL[(l - half + location[:, 0], k - half + location[:, 1])] = 1
+def handle_small_sum_equals_2(imgSL, l, k, half, location):
+    coord1, coord2 = location[0], location[1]
+
+    node1conn = np.sum(imgSL[l - half + coord1[0] - 1:l - half + coord1[0] + 2, k - half + coord1[1] - 1:k - half + coord1[1] + 2] > 0)
+    node2conn = np.sum(imgSL[l - half + coord2[0] - 1:l - half + coord2[0] + 2, k - half + coord2[1] - 1:k - half + coord2[1] + 2] > 0)
+
+    if node1conn > 2 and node2conn > 2:
+        y_min, y_max = min(l - half + coord1[0], l - half + coord2[0]), max(l - half + coord1[0], l - half + coord2[0])
+        x_min, x_max = min(k - half + coord1[1], k - half + coord2[1]), max(k - half + coord1[1], k - half + coord2[1])
+        zoom = imgSL[y_min:y_max + 1, x_min:x_max + 1] > 0
+        conV = skimage.measure.label(zoom, connectivity=2)
+
+        if np.max(conV) == 1:
+            com = ndimage.center_of_mass(conV)
+            if coord1[1] < coord2[1]:
+                coordinateC = (math.ceil(com[0]) + coord1[0], math.ceil(com[1]) + coord1[1])
+                coordinateF = (math.floor(com[0]) + coord1[0], math.floor(com[1]) + coord1[1])
+            else:
+                coordinateC = (math.ceil(com[0]) + coord1[0], -math.ceil(com[1]) + coord1[1])
+                coordinateF = (math.floor(com[0]) + coord1[0], -math.floor(com[1]) + coord1[1])
+
+            if imgSL[l - half + coordinateC[0], k - half + coordinateC[1]] > 0:
+                val = imgSL[l - half + coord1[0], k - half + coord1[1]]
+                imgSL[l - half + coord1[0], k - half + coord1[1]] = 1
+                imgSL[l - half + coord2[0], k - half + coord2[1]] = 1
+                imgSL[l - half + coordinateC[0], k - half + coordinateC[1]] = val
+            elif imgSL[l - half + coordinateF[0], k - half + coordinateF[1]] > 0:
+                val = imgSL[l - half + coord1[0], k - half + coord1[1]]
+                imgSL[l - half + coord1[0], k - half + coord1[1]] = 1
+                imgSL[l - half + coord2[0], k - half + coord2[1]] = 1
+                imgSL[l - half + coordinateF[0], k - half + coordinateF[1]] = val
+        elif np.max(conV) == 2:
+            arr, num = skimage.measure.label(imgSL[l - half:l + half, k - half:k + half] > 0, return_num=True, connectivity=2)
+            if num == 1:
+                imgSL[l - half + coord2[0], k - half + coord2[1]] = 1
+    else:
+        arr, num = skimage.measure.label(imgSL[l - half:l + half, k - half:k + half] > 0, return_num=True, connectivity=2)
+        if num == 1:
+            if node1conn == 2:
+                imgSL[l - half + coord1[0], k - half + coord1[1]] = 1
+            if node2conn == 2:
+                imgSL[l - half + coord2[0], k - half + coord2[1]] = 1
+
+
+
+def node_condense_09(imageFiltered, imageSkeleton, kernel):
+    """
+    Warning: this refactoring is correct, but 3x slower as the fasted version so far (node_condense_07)!
+    """
+    imageLabeled, labels = ndimage.label(imageFiltered, structure=np.ones((3, 3)))
+    imgSL = imageLabeled + imageSkeleton
+
+    half = len(kernel) // 2
+    M, N = imgSL.shape
+
+    for l in range(half, M - half):
+        for k in range(half, N - half):
+            small, small_sum, location = calculate_small_sum_and_location(imgSL, l, k, half)
+            
+            if small_sum > 2:
+                connectivity = calculate_connectivity(imgSL, l, k, half, location)
+                update_imgSL_based_on_connectivity(imgSL, l, k, half, location, connectivity)
+
+            elif small_sum == 2:
+                handle_small_sum_equals_2(imgSL, l, k, half, location)
+
+    return imgSL - imageSkeleton
