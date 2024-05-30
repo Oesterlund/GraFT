@@ -914,7 +914,9 @@ def node_graph(imE,imA,size,eps):
     imF,imgBl = project_edges(imE,eps,size)
     mask,index_list = project_mask(imF)
     ones = np.ones((3, 3))
-    imageNodeCondense = node_condense(imF-imA,imA, np.ones((size, size)))
+    # ~ imageNodeCondense = node_condense(imF-imA,imA, np.ones((size, size)))
+    import utilsF_performance
+    imageNodeCondense = utilsF_performance.node_condense_11(imF-imA,imA, np.ones((size, size)))
     imgInt = dilation((imE>1)*1, square(size))
     imgBlR =(((imgBl>0)*1 - imgInt)>0)*1
     df_pos = condense_mask(index_list,imageNodeCondense,mask,size)
