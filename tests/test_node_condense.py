@@ -76,9 +76,11 @@ def test_node_condense_performance():
         # ~ ('node_condense_03', utilsF_performance.node_condense_03),
         # ~ ('node_condense_04', utilsF_performance.node_condense_04),
         # ~ ('node_condense_05', utilsF_performance.node_condense_05),
-        ('node_condense_07', utilsF_performance.node_condense_07),
+        ('node_condense_07', utilsF_performance.node_condense_07), # new baseline
         # ~ ('node_condense_08', utilsF_performance.node_condense_08), # broken!
         # ~ ('node_condense_09', utilsF_performance.node_condense_09), # slow!
+        ('node_condense_10', utilsF_performance.node_condense_10),
+        ('node_condense_11', utilsF_performance.node_condense_11), # modularized version of node_condense_10
         # Add other versions here, e.g., ('optimized_node_condense', optimized_node_condense)
     ]
 
