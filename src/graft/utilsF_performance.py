@@ -921,7 +921,8 @@ def update_coordinates(imgSL, l, k, half, coord1, coord2, coordinateC, coordinat
         imgSL[l - half + coord2[0], k - half + coord2[1]] = 1
         imgSL[l - half + coordinateF[0], k - half + coordinateF[1]] = val
 
-from line_profiler import LineProfiler
+
+from line_profiler import profile
 
 @profile
 def node_condense_11(imageFiltered, imageSkeleton, kernel):

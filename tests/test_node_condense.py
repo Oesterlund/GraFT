@@ -5,6 +5,7 @@ import pytest
 from scipy import sparse
 from time import time
 from memory_profiler import memory_usage
+import sys
 
 # import both versions of node_condense for comparison
 from graft import utilsF, utilsF_performance
@@ -18,13 +19,9 @@ def profile_memory(func, *args, **kwargs):
     return peak_memory, result
 
 def run_node_condense_test(node_condense_func):
-    # Get the path of the directory that contains this script
     test_dir = os.path.dirname(os.path.realpath(__file__))
-
     node_condense_capture_path = os.path.join(test_dir, "expected_output", "node_condense_sparse")
-
     test_files = os.listdir(node_condense_capture_path)
-
     input_files = [f for f in test_files if f.startswith('input_')]
     total_time_taken = 0
     total_memory_used = 0
@@ -40,21 +37,18 @@ def run_node_condense_test(node_condense_func):
         with open(output_path, 'rb') as f:
             expected_output = pickle.load(f)
 
-        # Convert sparse data back to dense arrays
         args = [arg.toarray() if isinstance(arg, sparse.csr_matrix) else arg for arg in input_data['args']]
         kwargs = {k: (v.toarray() if isinstance(v, sparse.csr_matrix) else v) for k, v in input_data['kwargs'].items()}
         expected_output = expected_output.toarray() if isinstance(expected_output, sparse.csr_matrix) else expected_output
 
-        # Measure time and memory for the given function
         start_time = time()
         peak_memory, actual_output = profile_memory(node_condense_func, *args, **kwargs)
         end_time = time()
 
         time_taken = end_time - start_time
         total_time_taken += time_taken
-        total_memory_used = max(total_memory_used, peak_memory)  # Use the highest peak memory used across all files
+        total_memory_used = max(total_memory_used, peak_memory)
 
-        # Verify correctness
         np.testing.assert_array_equal(actual_output, expected_output, err_msg="Output from node_condense does not match the expected output.")
 
         results.append({
@@ -65,26 +59,17 @@ def run_node_condense_test(node_condense_func):
 
     return total_time_taken, total_memory_used
 
-
-
 def test_node_condense_performance():
-    # List of node_condense function versions to test
     node_condense_versions = [
         ('node_condense_original', utilsF_performance.node_condense_original),
-        # ~ ('node_condense_01', utilsF_performance.node_condense_01),
-        # ~ ('node_condense_02', utilsF_performance.node_condense_02),
-        # ~ ('node_condense_03', utilsF_performance.node_condense_03),
-        # ~ ('node_condense_04', utilsF_performance.node_condense_04),
-        # ~ ('node_condense_05', utilsF_performance.node_condense_05),
-        ('node_condense_07', utilsF_performance.node_condense_07), # new baseline
-        # ~ ('node_condense_08', utilsF_performance.node_condense_08), # broken!
-        # ~ ('node_condense_09', utilsF_performance.node_condense_09), # slow!
+        ('node_condense_07', utilsF_performance.node_condense_07),
         ('node_condense_10', utilsF_performance.node_condense_10),
-        ('node_condense_11', utilsF_performance.node_condense_11), # modularized version of node_condense_10
-        # Add other versions here, e.g., ('optimized_node_condense', optimized_node_condense)
+        ('node_condense_11', utilsF_performance.node_condense_11),
     ]
 
     for name, node_condense_func in node_condense_versions:
         total_time_taken, total_memory_used = run_node_condense_test(node_condense_func)
-        # Print consolidated performance results for each version
         print(f"\nTotal time taken by {name}: {total_time_taken:.4f} seconds, Peak memory used: {total_memory_used:.4f} MiB")
+
+if __name__ == "__main__":
+    pytest.main()
