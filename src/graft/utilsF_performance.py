@@ -1,9 +1,11 @@
 import math
 
+from line_profiler import profile
 from scipy import ndimage, sparse
+import skimage
+from skimage.measure import label
 import numpy as np
 import scipy as sp
-import skimage
 
 
 def node_condense_original(imageFiltered,imageSkeleton,kernel):
@@ -838,17 +840,10 @@ def node_condense_10(imageFiltered, imageSkeleton, kernel):
     return imgSL - imageSkeleton
 
 
-import numpy as np
-from scipy import ndimage
-from skimage.measure import label
-import math
-
 def label_images(imageFiltered, imageSkeleton):
     imageLabeled, labels = ndimage.label(imageFiltered, structure=np.ones((3, 3)))
     return imageLabeled + imageSkeleton
 
-def get_small_section(imgSL, l, k, half):
-    return imgSL[l - half:l + half, k - half:k + half]
 
 def calculate_local_sums(small, imgSL, l, k, half):
     location = np.argwhere(small > 1)
@@ -859,6 +854,7 @@ def calculate_local_sums(small, imgSL, l, k, half):
         local_sums[idx] = np.sum(local_patch > 0)
 
     return location, local_sums
+
 
 def update_imgSL(imgSL, l, k, half, location, local_sums):
     connectivity = dict(zip(map(tuple, location), local_sums))
@@ -872,6 +868,7 @@ def update_imgSL(imgSL, l, k, half, location, local_sums):
     if len(location) > 0:
         location = np.delete(location, center_index, axis=0)
         imgSL[(l - half + location[:, 0], k - half + location[:, 1])] = 1
+
 
 def handle_two_nodes(imgSL, l, k, half, location, small):
     coord1, coord2 = location[0], location[1]
@@ -900,6 +897,7 @@ def handle_two_nodes(imgSL, l, k, half, location, small):
             if node2conn == 2:
                 imgSL[l - half + coord2[0], k - half + coord2[1]] = 1
 
+
 def calculate_coordinates(coord1, coord2, com):
     if coord1[1] < coord2[1]:
         coordinateC = (math.ceil(com[0]) + coord1[0], math.ceil(com[1]) + coord1[1])
@@ -908,6 +906,7 @@ def calculate_coordinates(coord1, coord2, com):
         coordinateC = (math.ceil(com[0]) + coord1[0], -math.ceil(com[1]) + coord1[1])
         coordinateF = (math.floor(com[0]) + coord1[0], -math.floor(com[1]) + coord1[1])
     return coordinateC, coordinateF
+
 
 def update_coordinates(imgSL, l, k, half, coord1, coord2, coordinateC, coordinateF):
     if imgSL[l - half + coordinateC[0], k - half + coordinateC[1]] > 0:
@@ -922,8 +921,6 @@ def update_coordinates(imgSL, l, k, half, coord1, coord2, coordinateC, coordinat
         imgSL[l - half + coordinateF[0], k - half + coordinateF[1]] = val
 
 
-from line_profiler import profile
-
 @profile
 def node_condense_11(imageFiltered, imageSkeleton, kernel):
     """modularized version of node_condense_10"""
@@ -933,7 +930,7 @@ def node_condense_11(imageFiltered, imageSkeleton, kernel):
 
     for l in range(half, M - half):
         for k in range(half, N - half):
-            small = get_small_section(imgSL, l, k, half)
+            small = imgSL[l - half:l + half, k - half:k + half]
             small_sum = np.sum(small > 1)
 
             if small_sum > 2:
