@@ -1,10 +1,13 @@
+import hashlib
 from io import BytesIO
+import os
 from pathlib import Path
 import re
 import subprocess
 import sys
 import tempfile
 import time
+import zipfile
 
 import streamlit as st
 import numpy as np
@@ -38,26 +41,63 @@ def run():
         cmd = ["streamlit", "run", "src/graft/streamlit_app.py"]
         subprocess.run(cmd)
 
+def add_results_download_button(output_dir, md5_sum, parameters):
+    # generate log file
+    log_content = (
+        f"MD5 sum of input file: {md5_sum}\n"
+        "Parameters:\n"
+    )
+    for param, value in parameters.items():
+        log_content += f"\t{param}: {value}\n"
+
+    log_file_path = Path(output_dir) / "analysis_log.txt"
+    with open(log_file_path, 'w') as log_file:
+        log_file.write(log_content)
+
+    # create a zip file of the results
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w') as zipf:
+        for folder_name, subfolders, filenames in os.walk(output_dir):
+            for filename in filenames:
+                file_path = Path(folder_name) / filename
+                zipf.write(file_path, arcname=file_path.relative_to(output_dir))
+    zip_buffer.seek(0)
+
+    # add download button
+    st.download_button(
+        label="Download Results as ZIP",
+        data=zip_buffer,
+        file_name="results.zip",
+        mime="application/zip"
+    )
+
+def get_md5sum(uploaded_file):
+    md5 = hashlib.md5()
+    md5.update(uploaded_file.getvalue())
+    return md5.hexdigest()
+
 def main():
     # Main Page
     st.title('GraFT: Graph of Filaments over Time')
     uploaded_file = st.file_uploader("Upload TIFF file", type=['tif', 'tiff'])
 
-    # Sidebar for configuration
+    # sidebar for configuration
     st.sidebar.title("Configuration")
-    # all slider values: min, max, default
-    sigma = st.sidebar.slider('Sigma', 0.5, 2.0, 1.0)
-    small = st.sidebar.slider('Small', 30.0, 100.0, 50.0)
-    angleA = st.sidebar.slider('Angle A', 100, 180, 140)
-    overlap = st.sidebar.slider('Overlap', 1, 10, 4)
-    max_cost = st.sidebar.slider('Max Cost', 50, 200, 100)
-    size = st.sidebar.slider('Merge Radius (Size)', 1, 30, 6)
-    eps = st.sidebar.slider('Epsilon', 1, 400, 200)
-    thresh_top = st.sidebar.slider('thresh_top', 0.0, 1.0, 0.5)
+    params = {  # all slider values: min, max, default
+        "Sigma": st.sidebar.slider('Sigma', 0.5, 2.0, 1.0),
+        "Small": st.sidebar.slider('Small', 30.0, 100.0, 50.0),
+        "Angle A": st.sidebar.slider('Angle A', 100, 180, 140),
+        "Overlap": st.sidebar.slider('Overlap', 1, 10, 4),
+        "Max Cost": st.sidebar.slider('Max Cost', 50, 200, 100),
+        "Merge Radius (Size)": st.sidebar.slider('Merge Radius (Size)', 1, 30, 6),
+        "Epsilon": st.sidebar.slider('Epsilon', 1, 400, 200),
+        "Thresh Top": st.sidebar.slider('thresh_top', 0.0, 1.0, 0.5)
+    }
 
     if uploaded_file is not None:
         bytes_data = BytesIO(uploaded_file.getvalue())
-        
+        md5_sum = get_md5sum(uploaded_file)
+
         try:
             # Use tifffile to read the TIFF file
             img_o = tiff.imread(bytes_data)
@@ -77,17 +117,25 @@ def main():
                     with st.spinner('Running analysis... Please wait'):
                         start_time = time.time()
                         create_all(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
-                                   size=size, eps=eps, thresh_top=thresh_top, sigma=sigma, small=small,
-                                   angleA=angleA, overlap=overlap, max_cost=max_cost, name_cell='in silico time')
+                            size=params["Merge Radius (Size)"], eps=params["Epsilon"],
+                            thresh_top=params["Thresh Top"], sigma=params["Sigma"],
+                            small=params["Small"], angleA=params["Angle A"],
+                            overlap=params["Overlap"], max_cost=params["Max Cost"],
+                            name_cell='in silico time')
                         st.success(f"Analysis completed! Time taken: {time.time() - start_time:.2f} seconds.")
+                        add_results_download_button(output_dir, md5_sum, params)
+
                 else:  # img_o.ndim == 2, i.e. input image is a still image
                     subdirs = ['n_graphs', 'circ_stat']
                     with st.spinner('Running analysis... Please wait'):
                         start_time = time.time()
-                        create_all_still(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
-                                   size=size, eps=eps, thresh_top=thresh_top, sigma=sigma, small=small,
-                                   angleA=angleA, overlap=overlap, name_cell='in silico still')
+                        create_all(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
+                            size=params["Merge Radius (Size)"], eps=params["Epsilon"],
+                            thresh_top=params["Thresh Top"], sigma=params["Sigma"],
+                            small=params["Small"], angleA=params["Angle A"],
+                            overlap=params["Overlap"], name_cell='in silico still')
                         st.success(f"Analysis completed! Time taken: {time.time() - start_time:.2f} seconds.")
+                        add_results_download_button(output_dir, md5_sum, params)
 
                 # Display images from all subdirectories using tabs
                 tab_titles = [f"{subdir.replace('_', ' ').title()}" for subdir in subdirs]
