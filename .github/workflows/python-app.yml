@@ -40,5 +40,5 @@ jobs:
         flake8 src/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
     - name: on main branch (run pytest w/ Python versions), otherwise just Python 3.8
-      run: pytest
+      run: pytest -s -v
       if: github.ref == 'refs/heads/main' || matrix.python-version == '3.8'
