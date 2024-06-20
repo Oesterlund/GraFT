@@ -30,6 +30,7 @@ from skspatial.objects import Line, Point
 import pickle
 import functools
 
+from graft.node_condense import node_condense_faster_modularized
 
 
 ###############################################################################
@@ -778,111 +779,6 @@ def condense_mask(index_list,imageNodeCondense,mask,size):
         df_new = df.rename(columns={0: "old pos1", 1: "old pos2", 2: "map value", 3: "distance between pos", 4: "new pos1", 5: "node pos1", 6: "new pos2", 7: "node pos2"})
     return df_new
 
-def node_condense(imageFiltered,imageSkeleton,kernel):
-    '''
-    Condensation of nodes based on kernel size set by user.
-
-    Parameters
-    ----------
-    imageFiltered : array
-        Skeletonized image containing nodes and the added nodes from VW algorithm.
-    imageSkeleton : array
-        Original skeletonized image with nodes marked.
-    kernel : array
-        kernel to filter on.
-
-    Returns
-    -------
-    Skeletonized image with nodes defined and merged together based on distance.
-
-    '''
-    imageLabeled, labels = sp.ndimage.label(imageFiltered, structure=np.ones((3, 3)))
-    #need to have rolling window to condense nodes together
-    imgSL = imageLabeled+imageSkeleton
-
-    half = int(len(kernel)/2)
-    M,N = imgSL.shape
-    for l in range(half,M-half):
-        for k in range(half,N-half):
-
-            small = imgSL[l-half:l+half,k-half:k+half]
-            # get all pixel location for vals higher than 1
-            if((np.sum((small>1)*1)>2)):
-                location=np.argwhere(small > 1)
-                #if any endpoints,remove those.
-                for z in range(len(location)):
-                    coord1 = np.array([location[z,0],location[z,1]])
-                    if(np.sum((imgSL[l-half+coord1[0]-1:l-half+coord1[0]+2,k-half+coord1[1]-1:k-half+coord1[1]+2]>0)*1)==2):
-                        #this is an endpoint, remove it
-                        imgSL[l-half+coord1[0],k-half+coord1[1]] = 1
-                    small = imgSL[l-half:l+half,k-half:k+half]
-                location=np.argwhere(small > 1)
-                for i in range(len(location)):
-                    if(i != (np.floor(len(location)/2))):
-                        #this is the middle one , need to keep it
-                        coord1 = np.array([location[i,0],location[i,1]])
-                        imgSL[l-half+coord1[0],k-half+coord1[1]] = 1
-            
-            # there are two different points close to each other
-            elif(np.sum((small>1)*1)==2):
-
-                location=np.argwhere(small > 1)
-                    
-                # test that both points are not endnodes
-                coord1 = np.array([location[0,0],location[0,1]])
-                coord2 = np.array([location[1,0],location[1,1]])
-                
-                node1conn = np.sum((imgSL[l-half+coord1[0]-1:l-half+coord1[0]+2,k-half+coord1[1]-1:k-half+coord1[1]+2]>0)*1)
-                node2conn = np.sum((imgSL[l-half+coord2[0]-1:l-half+coord2[0]+2,k-half+coord2[1]-1:k-half+coord2[1]+2]>0)*1)
-                if((node1conn>2) & (node2conn>2)):
-                    # nod end nodes
-                    y_min = min(l-half+location[0][0],l-half+location[1][0])
-                    y_max = max(l-half+location[0][0],l-half+location[1][0])
-                    x_min = min(k-half+location[0][1], k-half+location[1][1])
-                    x_max = max(k-half+location[0][1], k-half+location[1][1])
-                    zoom = (imgSL[y_min:y_max+1,x_min:x_max+1]>0)*1
-                    conV = skimage.measure.label(zoom, connectivity=2)
-                    if(np.max(conV)==1):
-                        com = ndimage.center_of_mass(conV)
-                       
-                        if(coord1[1]<coord2[1]):
-                            coordinateC = math.ceil(com[0])+coord1[0],math.ceil(com[1])+coord1[1]
-                            coordinateF = math.floor(com[0])+coord1[0],math.floor(com[1])+coord1[1]
-                        else:
-                            coordinateC = math.ceil(com[0])+coord1[0],-math.ceil(com[1])+coord1[1]
-                            coordinateF = math.floor(com[0])+coord1[0],-math.floor(com[1])+coord1[1]
-                        
-                        # test if the coordinate has value different from 0
-                        if((imgSL[l-half+coordinateC[0],k-half+coordinateC[1]])>0):
-                            #contnue set value to one of the other values
-                            val = imgSL[l-half+coord1[0],k-half+coord1[1]]
-                            imgSL[l-half+location[0][0],k-half+location[0][1]] = 1
-                            imgSL[l-half+location[1][0],k-half+location[1][1]] = 1
-                            imgSL[l-half+coordinateC[0],k-half+coordinateC[1]] = val
-                            
-                        elif((imgSL[l-half+coordinateF[0],k-half+coordinateF[1]])>0):
-                            val = imgSL[l-half+coord1[0],k-half+coord1[1]]
-                            imgSL[l-half+location[0][0],k-half+location[0][1]] = 1
-                            imgSL[l-half+location[1][0],k-half+location[1][1]] = 1
-                            imgSL[l-half+coordinateF[0],k-half+coordinateF[1]] = val
-                    elif(np.max(conV)==2):
-                         # need to check that the two nodes are connected
-                        arr,num = skimage.measure.label((small>0)*1,return_num=True, connectivity=2)
-                        #if num = 2, then they are not together- meaning that its two seperated branches. if num=1 then together
-                        if(num==1):
-                            #remove end node
-                            imgSL[l-half+coord2[0],k-half+coord2[1]] = 1
-                else:
-                    # need to check that the two nodes are connected
-                    arr,num = skimage.measure.label((small>0)*1,return_num=True, connectivity=2)
-                    #if num = 2, then they are not together- meaning that its two seperated branches. if num=1 then together
-                    if(num==1):
-                    #remove end node
-                        if(node1conn==2):
-                            imgSL[l-half+coord1[0],k-half+coord1[1]] = 1
-                        if(node2conn==2):
-                            imgSL[l-half+coord2[0],k-half+coord2[1]] = 1
-    return (imgSL-imageSkeleton)  
 
 def node_graph(imE,imA,size,eps):
     '''
@@ -914,10 +810,7 @@ def node_graph(imE,imA,size,eps):
     imF,imgBl = project_edges(imE,eps,size)
     mask,index_list = project_mask(imF)
     ones = np.ones((3, 3))
-    # TODO FIXME: remove utilsF_performance after performance profiling
-    # ~ imageNodeCondense = node_condense(imF-imA,imA, np.ones((size, size)))
-    from graft import utilsF_performance
-    imageNodeCondense = utilsF_performance.node_condense_11(imF-imA,imA, np.ones((size, size)))
+    imageNodeCondense = node_condense_faster_modularized(imF-imA,imA, np.ones((size, size)))
     imgInt = dilation((imE>1)*1, square(size))
     imgBlR =(((imgBl>0)*1 - imgInt)>0)*1
     df_pos = condense_mask(index_list,imageNodeCondense,mask,size)

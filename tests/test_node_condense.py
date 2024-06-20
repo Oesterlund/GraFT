@@ -7,8 +7,13 @@ from time import time
 from memory_profiler import memory_usage
 import sys
 
-# import both versions of node_condense for comparison
-from graft import utilsF, utilsF_performance
+from graft import node_condense
+
+"""
+The purpose of this module is to compare the performance of different
+implementations of the node_condense function and to ensure that they produce
+identical results.
+"""
 
 def profile_memory(func, *args, **kwargs):
     def wrapper():
@@ -27,6 +32,8 @@ def run_node_condense_test(node_condense_func):
     total_memory_used = 0
     results = []
 
+    # The input data is the same as `src/graft/tiff/timeseries.tif` but stored
+    # as individual sparse matrices.
     for input_file in input_files:
         input_path = os.path.join(node_condense_capture_path, input_file)
         output_file = 'output_' + input_file.split('_')[1]
@@ -37,6 +44,8 @@ def run_node_condense_test(node_condense_func):
         with open(output_path, 'rb') as f:
             expected_output = pickle.load(f)
 
+        # convert sparse matrices back to the "normal" ones that the
+        # node_condense function expects.
         args = [arg.toarray() if isinstance(arg, sparse.csr_matrix) else arg for arg in input_data['args']]
         kwargs = {k: (v.toarray() if isinstance(v, sparse.csr_matrix) else v) for k, v in input_data['kwargs'].items()}
         expected_output = expected_output.toarray() if isinstance(expected_output, sparse.csr_matrix) else expected_output
@@ -61,10 +70,8 @@ def run_node_condense_test(node_condense_func):
 
 def test_node_condense_performance():
     node_condense_versions = [
-        ('node_condense_original', utilsF_performance.node_condense_original),
-        ('node_condense_07', utilsF_performance.node_condense_07),
-        ('node_condense_10', utilsF_performance.node_condense_10),
-        ('node_condense_11', utilsF_performance.node_condense_11),
+        ('node_condense_original', node_condense.node_condense_original),
+        ('node_condense_faster_modularized', node_condense.node_condense_faster_modularized),
     ]
 
     for name, node_condense_func in node_condense_versions:
