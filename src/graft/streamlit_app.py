@@ -8,6 +8,7 @@ import sys
 import tempfile
 import time
 import zipfile
+import shutil  # import shutil for cleanup
 
 import streamlit as st
 import numpy as np
@@ -175,7 +176,7 @@ def main():
     if st.session_state['analysis_results']:
         add_results_download_button(st.session_state['output_dir'], st.session_state['md5_sum'], st.session_state['params'])
         # Cleanup temp directory after download
-        if st.download_button("Clean up temp files"):
+        if st.button("Clean up temp files"):
             shutil.rmtree(st.session_state['output_dir'])
             st.session_state['analysis_results'] = None
             st.session_state['output_dir'] = tempfile.mkdtemp()
