@@ -77,17 +77,17 @@ def get_md5sum(uploaded_file):
     md5.update(uploaded_file.getvalue())
     return md5.hexdigest()
 
+def reset_session_state():
+	if st.session_state['output_dir'] and Path(st.session_state['output_dir']).exists():
+		shutil.rmtree(st.session_state['output_dir'])
+	st.session_state['analysis_results'] = None
+	st.session_state['output_dir'] = None
+	st.session_state['md5_sum'] = None
+	st.session_state['params'] = None
+
 def main():
     # Initialize session state
     if 'analysis_results' not in st.session_state:
-        st.session_state['analysis_results'] = None
-        st.session_state['output_dir'] = None
-        st.session_state['md5_sum'] = None
-        st.session_state['params'] = None
-
-    def reset_session_state():
-        if st.session_state['output_dir'] and Path(st.session_state['output_dir']).exists():
-            shutil.rmtree(st.session_state['output_dir'])
         st.session_state['analysis_results'] = None
         st.session_state['output_dir'] = None
         st.session_state['md5_sum'] = None
