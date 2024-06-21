@@ -11,7 +11,6 @@ import zipfile
 import shutil
 
 import streamlit as st
-import numpy as np
 import tifffile as tiff
 from skimage import io as skimage_io
 
@@ -85,6 +84,75 @@ def reset_session_state():
 	st.session_state['md5_sum'] = None
 	st.session_state['params'] = None
 
+def run_analysis(uploaded_file, params):
+	bytes_data = BytesIO(uploaded_file.getvalue())
+	try:
+		# Use tifffile to read the TIFF file
+		img_o = tiff.imread(bytes_data)
+
+		if img_o.ndim not in (2,3):
+			raise ValueError(f"Uploaded image is not a tiff still image or time-series. Expected image with 2 or 3 dimensions, got: {img_o.shape}.")
+
+		mask = generate_default_mask(img_o.shape)
+
+		# create a persistent temp directory structure for output files
+		temp_dir = tempfile.mkdtemp()
+		output_dir = Path(temp_dir)
+		create_output_dirs(str(output_dir))
+
+		if img_o.ndim == 3:  # input image represents a time series
+			subdirs = ['n_graphs', 'circ_stat', 'mov', 'plots']
+			with st.spinner('Running analysis... Please wait'):
+				start_time = time.time()
+				create_all(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
+					size=params["Merge Radius (Size)"], eps=params["Epsilon"],
+					thresh_top=params["Thresh Top"], sigma=params["Sigma"],
+					small=params["Small"], angleA=params["Angle A"],
+					overlap=params["Overlap"], max_cost=params["Max Cost"],
+					name_cell='in silico time')
+				st.success(f"Analysis completed! Time taken: {time.time() - start_time:.2f} seconds.")
+				st.session_state['analysis_results'] = True
+				st.session_state['output_dir'] = output_dir
+				st.session_state['md5_sum'] = get_md5sum(uploaded_file)
+				st.session_state['params'] = params
+
+		else:  # img_o.ndim == 2, i.e. input image is a still image
+			subdirs = ['n_graphs', 'circ_stat']
+			with st.spinner('Running analysis... Please wait'):
+				start_time = time.time()
+				create_all_still(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
+					size=params["Merge Radius (Size)"], eps=params["Epsilon"],
+					thresh_top=params["Thresh Top"], sigma=params["Sigma"],
+					small=params["Small"], angleA=params["Angle A"],
+					overlap=params["Overlap"], name_cell='in silico still')
+				st.success(f"Analysis completed! Time taken: {time.time() - start_time:.2f} seconds.")
+				st.session_state['analysis_results'] = True
+				st.session_state['output_dir'] = output_dir
+				st.session_state['md5_sum'] = get_md5sum(uploaded_file)
+				st.session_state['params'] = params
+
+		# Display images from all subdirectories using tabs
+		tab_titles = [f"{subdir.replace('_', ' ').title()}" for subdir in subdirs]
+		tabs = st.tabs(tab_titles)  # Create a tab for each subdirectory
+
+		for tab, subdir in zip(tabs, subdirs):
+			with tab:
+				st.subheader(f"{subdir.replace('_', ' ').title()} Output")
+				subdir_path = Path(output_dir) / subdir
+				images = list(subdir_path.glob('*.png'))
+
+				# sort images naturally by filename
+				images_sorted = sorted(images, key=lambda x: natural_sort_key(x.name))
+				if images_sorted:
+					for image_path in images_sorted:
+						image = skimage_io.imread(str(image_path))
+						st.image(image, caption=f'{image_path.name}', use_column_width=True)
+				else:
+					st.write(f"No images found in {subdir}.")
+
+	except Exception as e:
+		st.error(str(e))
+
 def main():
     # Initialize session state
     if 'analysis_results' not in st.session_state:
@@ -93,75 +161,7 @@ def main():
         st.session_state['md5_sum'] = None
         st.session_state['params'] = None
 
-    def run_analysis(bytes_data, params):
-        try:
-            # Use tifffile to read the TIFF file
-            img_o = tiff.imread(bytes_data)
-
-            if img_o.ndim not in (2,3):
-                raise ValueError(f"Uploaded image is not a tiff still image or time-series. Expected image with 2 or 3 dimensions, got: {img_o.shape}.")
-
-            mask = generate_default_mask(img_o.shape)
-
-            # create a persistent temp directory structure for output files
-            temp_dir = tempfile.mkdtemp()
-            output_dir = Path(temp_dir)
-            create_output_dirs(str(output_dir))
-
-            if img_o.ndim == 3:  # input image represents a time series
-                subdirs = ['n_graphs', 'circ_stat', 'mov', 'plots']
-                with st.spinner('Running analysis... Please wait'):
-                    start_time = time.time()
-                    create_all(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
-                        size=params["Merge Radius (Size)"], eps=params["Epsilon"],
-                        thresh_top=params["Thresh Top"], sigma=params["Sigma"],
-                        small=params["Small"], angleA=params["Angle A"],
-                        overlap=params["Overlap"], max_cost=params["Max Cost"],
-                        name_cell='in silico time')
-                    st.success(f"Analysis completed! Time taken: {time.time() - start_time:.2f} seconds.")
-                    st.session_state['analysis_results'] = True
-                    st.session_state['output_dir'] = output_dir
-                    st.session_state['md5_sum'] = get_md5sum(uploaded_file)
-                    st.session_state['params'] = params
-
-            else:  # img_o.ndim == 2, i.e. input image is a still image
-                subdirs = ['n_graphs', 'circ_stat']
-                with st.spinner('Running analysis... Please wait'):
-                    start_time = time.time()
-                    create_all(pathsave=str(output_dir), img_o=img_o, maskDraw=mask,
-                        size=params["Merge Radius (Size)"], eps=params["Epsilon"],
-                        thresh_top=params["Thresh Top"], sigma=params["Sigma"],
-                        small=params["Small"], angleA=params["Angle A"],
-                        overlap=params["Overlap"], name_cell='in silico still')
-                    st.success(f"Analysis completed! Time taken: {time.time() - start_time:.2f} seconds.")
-                    st.session_state['analysis_results'] = True
-                    st.session_state['output_dir'] = output_dir
-                    st.session_state['md5_sum'] = get_md5sum(uploaded_file)
-                    st.session_state['params'] = params
-
-            # Display images from all subdirectories using tabs
-            tab_titles = [f"{subdir.replace('_', ' ').title()}" for subdir in subdirs]
-            tabs = st.tabs(tab_titles)  # Create a tab for each subdirectory
-
-            for tab, subdir in zip(tabs, subdirs):
-                with tab:
-                    st.subheader(f"{subdir.replace('_', ' ').title()} Output")
-                    subdir_path = Path(output_dir) / subdir
-                    images = list(subdir_path.glob('*.png'))
-
-                    # sort images naturally by filename
-                    images_sorted = sorted(images, key=lambda x: natural_sort_key(x.name))
-                    if images_sorted:
-                        for image_path in images_sorted:
-                            image = skimage_io.imread(str(image_path))
-                            st.image(image, caption=f'{image_path.name}', use_column_width=True)
-                    else:
-                        st.write(f"No images found in {subdir}.")
-
-        except Exception as e:
-            st.error(str(e))
-
-    # Main Page
+    # main Page
     st.title('GraFT: Graph of Filaments over Time')
     uploaded_file = st.file_uploader("Upload TIFF file", type=['tif', 'tiff'], on_change=reset_session_state)
 
@@ -181,7 +181,7 @@ def main():
     if uploaded_file is not None:
         st.session_state['params'] = params
         if st.button('Run Analysis'):
-            run_analysis(BytesIO(uploaded_file.getvalue()), params)
+            run_analysis(uploaded_file, params)
 
     if st.session_state['analysis_results']:
         add_results_download_button(st.session_state['output_dir'], st.session_state['md5_sum'], st.session_state['params'])
