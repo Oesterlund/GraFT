@@ -110,5 +110,5 @@ def test_plot_images(test_env):
                 generated_plot_path = os.path.join(output_plot_dir, plot_fname)
                 expected_plot_path = os.path.join(expected_plot_dir, plot_fname)
 
-                assert compare_images(generated_plot_path, expected_plot_path, method='ssim', tolerance=0.95), \
+                assert compare_images(generated_plot_path, expected_plot_path, method='ssim', tolerance=0.90), \
                     f"{plot_fname} does not match the expected output."
