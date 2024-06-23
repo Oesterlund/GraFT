@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+import concurrent.futures
 import numpy as np
 import matplotlib.pyplot as plt
 import os
@@ -32,7 +33,7 @@ def generate_default_mask(image_shape):
 def pad_timeseries_images(img_o):
     M,N,P = (img_o.shape)
     imgP=np.zeros((M,N+2,P+2))
-    
+
     for m in range(len(img_o)):
         imgP[m] = np.pad(img_o[m], 1, 'constant')
     return imgP
@@ -78,13 +79,13 @@ def tag_graphs(img_o, graphTagg, posL, max_cost, memKeep, output_dir):
     tag_new = [0]*(len(img_o))
     tag_new[0] = max_tag
     filamentsNU = []
-    
+
     for i in range(len(img_o)-1):
         g_tagged[i+1],cost[i],tag_new[i+1],filamentsNU = \
             utilsF.filament_tag(g_tagged[i], graphTagg[i+1],
                                 posL[i], posL[i+1], tag_new[i],
                                 max_cost, filamentsNU, memKeep)
-    
+
     pickle.dump(g_tagged, open(os.path.join(output_dir, 'tagged_graph.gpickle'), 'wb'))
     return g_tagged, tag_new
 
@@ -115,28 +116,35 @@ def create_scatter_plot(x_data, y_data, path, title='', x_label='frames', y_labe
     save_and_close_plot(path)
 
 
-def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,overlap,max_cost,name_cell):
+def create_all(pathsave, img_o, maskDraw, size, eps, thresh_top, sigma,
+               small, angleA, overlap, max_cost, name_cell,
+               parallelize=True):
     create_output_dirs(pathsave)
-    
+
     posL = [0]*len(img_o)
     imF = [0]*len(img_o)
     graphTagg = [0]*len(img_o)
-    
+
     imgP = pad_timeseries_images(img_o)
 
-    # eps: (epsilon) threshold for Visvalingam-Whyatt algorithm for determining
-    # which points on a curve can be removed w/out significantly altering its shape
-    for i, image in enumerate(imgP):
-        posL[i], graphTagg[i], imF[i] = process_individual_image(image, pathsave, size, eps, thresh_top, sigma, small, angleA, overlap, i)
+    if parallelize:  # prcoess images in parallel
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            futures = {executor.submit(process_individual_image, image, pathsave, size, eps, thresh_top, sigma, small, angleA, overlap, i): i for i, image in enumerate(imgP)}
+            for future in concurrent.futures.as_completed(futures):
+                i = futures[future]
+                posL[i], graphTagg[i], imF[i] = future.result()
+    else:  # process images sequentially
+        for i, image in enumerate(imgP):
+            posL[i], graphTagg[i], imF[i] = process_individual_image(image, pathsave, size, eps, thresh_top, sigma, small, angleA, overlap, i)
 
     pickle.dump(posL, open(os.path.join(pathsave, 'posL.gpickle'), 'wb'))
-    
+
     if(len(img_o)<20):
         memKeep = len(img_o)
     else:
         memVal = 20
         memKeep = utilsF.signMem(graphTagg[0:memVal],posL[0:memVal])
-    
+
     g_tagged, tag_new = tag_graphs(img_o, graphTagg, posL, max_cost, memKeep, pathsave)
 
     for i, _image in enumerate(img_o):
@@ -154,7 +162,7 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
     filament_counts = pd_fil_info['filament'].value_counts()
     create_histogram(filament_counts, os.path.join(pathsave, 'plots', 'survival_filaments.png'), title='filaments survival')
     create_histogram(filament_counts, os.path.join(pathsave, 'plots', 'survival_filaments_normalized.png'), density=True, title='filaments survival')
-    
+
     # filament density plot
     dens = np.zeros(len(img_o))
     fil_len = np.zeros(len(img_o))
@@ -164,11 +172,11 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
         fil_len[i] =np.median(pd_fil_info[pd_fil_info['frame number']==i]['filament length'])
         fil_I[i] = np.median(pd_fil_info[pd_fil_info['frame number']==i]['filament intensity per length'])
     create_scatter_plot(np.arange(len(img_o)), dens, os.path.join(pathsave, 'plots', 'filament_density.png'), y_label='filament density')
-    
-    # filament length plot
-    create_scatter_plot(np.arange(len(img_o)), fil_len, os.path.join(pathsave, 'plots', 'filamentlength.png'), y_label='filament median length')    
 
-    # circular mean angle plot    
+    # filament length plot
+    create_scatter_plot(np.arange(len(img_o)), fil_len, os.path.join(pathsave, 'plots', 'filamentlength.png'), y_label='filament median length')
+
+    # circular mean angle plot
     mean_angle,var_val = utilsF.circ_stat_plot(pathsave,pd_fil_info)
     setup_plot((10, 10), 'Frames', 'Circular mean angle')
     plt.scatter(np.arange(len(mean_angle)), mean_angle)
@@ -184,13 +192,13 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
         fil = pd_fil_info[pd_fil_info['filament'] == s]['filament length'].values
         plt.plot(np.arange(len(fil)), fil)
     save_and_close_plot(os.path.join(pathsave, 'plots', 'survival_len.png'))
-    
+
     ###############################################################################
     #
     # mean/median value per frame
     #
     ###############################################################################
-    
+
     df_angles2 = pd.DataFrame()
     df_angles2['angles'] = mean_angle
     df_angles2['var'] = var_val
@@ -198,28 +206,28 @@ def create_all(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,ov
     df_angles2['filament median length'] = fil_len
     df_angles2['filament mediam intensity per length'] = fil_I
     df_angles2['name'] = name_cell
-    
+
     df_angles2.to_csv(os.path.join(pathsave, 'value_per_frame.csv'),index=False)
 
 
 def create_all_still(pathsave,img_o,maskDraw,size,eps,thresh_top,sigma,small,angleA,overlap,name_cell):
-    create_output_dirs(pathsave)    
-    
+    create_output_dirs(pathsave)
+
     N,P = (img_o.shape)
     imgP=np.zeros((N+2,P+2))
     imgP = np.pad(img_o, 1, 'constant')
 
     posL, graphTagg, imF = process_individual_image(imgP, pathsave, size, eps, thresh_top, sigma, small, angleA, overlap)
-    
-    
+
+
     pd_fil_info = utilsF.filament_info(imgP, graphTagg, posL, pathsave,imF,maskDraw)
     pd_fil_info = pd.read_csv(os.path.join(pathsave, 'traced_filaments_info.csv'))
-    
+
     mean_len = np.mean(pd_fil_info['filament length'])
     list_len = np.sort(pd_fil_info['filament length'])
     plt.figure()
     plt.scatter( np.arange(0,len(list_len)),list_len)
-    
-    
-    mean_angle,var_val = utilsF.circ_stat(pd_fil_info,pathsave)    
+
+
+    mean_angle,var_val = utilsF.circ_stat(pd_fil_info,pathsave)
     print('mean angle: ', mean_angle, 'circ var: ', var_val, 'mean length: ', mean_len)
