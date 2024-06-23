@@ -46,6 +46,7 @@ def main():
         parser_sp.add_argument('--overlap', type=int, default=DEFAULT_OVERLAP, help='Overlap parameter')
         
         if subparser == 'timeseries':
+            parser_sp.add_argument('--disable_parallelization', action='store_true', help='Disable parallel processing for debugging purposes')
             parser_sp.add_argument('--max_cost', type=int, default=DEFAULT_MAX_COST, help='Max cost parameter for tracking')
 
     args = parser.parse_args()
@@ -74,7 +75,8 @@ def main():
                    angleA=args.angleA,
                    overlap=args.overlap,
                    max_cost=args.max_cost,
-                   name_cell='in silico time')
+                   name_cell='in silico time',
+                   parallelize=(not args.disable_parallelization))
 
     elif args.command == 'still':
         create_all_still(pathsave=os.path.abspath(args.output_dir),
