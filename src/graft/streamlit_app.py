@@ -156,6 +156,7 @@ def run_analysis(uploaded_file, params):
         st.session_state['md5_sum'] = get_md5sum(uploaded_file)
         st.session_state['params'] = params
 
+        add_results_download_button(st.session_state['output_dir'], st.session_state['md5_sum'], st.session_state['params'])
         display_analysis_results(output_dir, subdirs)
 
     except Exception as e:
@@ -221,10 +222,6 @@ def main():
         st.session_state['params'] = params
         if st.button('Run Analysis'):
             run_analysis(uploaded_file, params)
-
-    if st.session_state['analysis_results']:
-        add_results_download_button(st.session_state['output_dir'], st.session_state['md5_sum'], st.session_state['params'])
-
 
 if __name__ == "__main__":
     main()
