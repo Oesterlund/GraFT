@@ -170,7 +170,7 @@ def perform_time_series_analysis(input_image, mask, output_dir, params):
     with st.spinner('Running analysis... Please wait'):
         create_all(pathsave=str(output_dir), img_o=input_image, maskDraw=mask,
                    size=params["Merge Radius (Size)"], eps=params["Bendiness"],
-                   thresh_top=params["Thresh Top"], sigma=params["Smoothing"],
+                   thresh_top=params["Fine Structure Sensitivity"], sigma=params["Smoothing"],
                    small=params["Noisy Objects"], angleA=params["Minimum Angle"],
                    overlap=params["Overlap"], max_cost=params["Allowed Movement"],
                    name_cell='in silico time')
@@ -183,7 +183,7 @@ def perform_still_image_analysis(input_image, mask, output_dir, params):
     with st.spinner('Running analysis... Please wait'):
         create_all_still(pathsave=str(output_dir), img_o=input_image, maskDraw=mask,
                          size=params["Merge Radius (Size)"], eps=params["Bendiness"],
-                         thresh_top=params["Thresh Top"], sigma=params["Smoothing"],
+                         thresh_top=params["Fine Structure Sensitivity"], sigma=params["Smoothing"],
                          small=params["Noisy Objects"], angleA=params["Minimum Angle"],
                          overlap=params["Overlap"], name_cell='in silico still')
 
@@ -233,7 +233,8 @@ The minimum angle is set by the user, and calculated by the algorithm. If the us
         help="""This parameter allows additions of nodes to express the underlying filamentous structures bendiness better.
 This value should be a reflection of how bendy the filamentous structures you work with are. If set low, it will add more nodes, higher and fewer nodes will be added."""),
 
-        "Thresh Top": st.sidebar.slider('Thresh Top', 0.0, 1.0, 0.5, on_change=reset_session_state)
+        "Fine Structure Sensitivity": st.sidebar.slider('Fine Structure Sensitivity', 0.01, 0.7, 0.5, on_change=reset_session_state,
+        help="""This parameter adjusts the lower value given to the hysteresis threshold applied on the image data. This filter helps eliminate noise and uneven backgrounds. The upper threshold is calculated using Otsus method. Set this to a low value, if you want to catch fine filamentous structures(0.1), and higher (0.5) with more noise in the image.""")
     }
 
     if uploaded_file is not None:
