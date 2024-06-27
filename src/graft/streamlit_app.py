@@ -171,8 +171,8 @@ def perform_time_series_analysis(input_image, mask, output_dir, params):
         create_all(pathsave=str(output_dir), img_o=input_image, maskDraw=mask,
                    size=params["Merge Radius (Size)"], eps=params["Epsilon"],
                    thresh_top=params["Thresh Top"], sigma=params["Smoothing"],
-                   small=params["Noisy Objects"], angleA=params["Angle A"],
-                   overlap=params["Overlap"], max_cost=params["Max Cost"],
+                   small=params["Noisy Objects"], angleA=params["Minimum Angle"],
+                   overlap=params["Overlap"], max_cost=params["Allowed Movement"],
                    name_cell='in silico time')
 
 
@@ -184,7 +184,7 @@ def perform_still_image_analysis(input_image, mask, output_dir, params):
         create_all_still(pathsave=str(output_dir), img_o=input_image, maskDraw=mask,
                          size=params["Merge Radius (Size)"], eps=params["Epsilon"],
                          thresh_top=params["Thresh Top"], sigma=params["Smoothing"],
-                         small=params["Noisy Objects"], angleA=params["Angle A"],
+                         small=params["Noisy Objects"], angleA=params["Minimum Angle"],
                          overlap=params["Overlap"], name_cell='in silico still')
 
 
@@ -211,9 +211,17 @@ def main():
 			help='Parameter for adding Gaussian blur, to fix potential breakage from noisy image data. This value should be kept low (1-2). If you have very noisy data, try setting this value higher.'),
 		"Noisy Objects": st.sidebar.slider('Noisy Objects', 10.0, 100.0, 50.0, on_change=reset_session_state,
             help='Removes small objects. The algorithm will remove small discrete clusters of pixels dependent on the threshold defined here. Set this value depending on the need: if you work with non-noisy image data with fine tubular structures, set it to a low value (10); if working with more noisy data, we recommend going higher (50 or up).'),
-        "Angle A": st.sidebar.slider('Angle A', 100, 180, 140, on_change=reset_session_state),
-        "Overlap": st.sidebar.slider('Overlap', 1, 10, 4, on_change=reset_session_state),
-        "Max Cost": st.sidebar.slider('Max Cost', 50, 200, 100, on_change=reset_session_state),
+
+        "Minimum Angle": st.sidebar.slider('Minimum Angle', 100, 180, 140, on_change=reset_session_state,
+        help="""The minimum angle is used for tracing filamentous structures. The tracing is done as a depth first search which is constrained on angles based on the spatial positions of the nodes. The angle defined here, is the minimum allowed angle which is allowed in a search for visiting nodes.
+The minimum angle is set by the user, and calculated by the algorithm. If the user defined angle is lower than the calculated angle, the user defined minimum angle is used."""),
+
+        "Overlap": st.sidebar.slider('Overlap', 1, 10, 4, on_change=reset_session_state,
+        help="""The overlap parameter is the amount of a filament length that is allowed to be shared between filaments. It is defined as (defined filament)/overlap, which means that if the value is 4, you allow 1/4 of the path to be shared. If you work with a system where not much overlap is occurring, set this to a higher value (lower allowed overlap), alternatively if working with a system with overlap, set it lower. From experiments, we found that 4 is a good value for actin."""),
+        
+        "Allowed Movement": st.sidebar.slider('Allowed Movement', 25, 200, 50, on_change=reset_session_state,
+        help="""Timeseries parameter. This parameter controls the maximum allowed distance filaments are allowed to move between frames. The distance is given as the Frobenius norm of the positions of end nodes between two potential matches. If this parameter is set low, only small perturbations between frames are allowed, if set high, filamentous structures are allowed to move further between frames. This is dependent on the dynamics and time interval of your image data, we recommend starting at 50."""),
+        
         "Merge Radius (Size)": st.sidebar.slider('Merge Radius (Size)', 1, 30, 6, on_change=reset_session_state),
         "Epsilon": st.sidebar.slider('Epsilon', 1, 400, 200, on_change=reset_session_state),
         "Thresh Top": st.sidebar.slider('Thresh Top', 0.0, 1.0, 0.5, on_change=reset_session_state)
