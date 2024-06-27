@@ -15,7 +15,7 @@ numpy = "1.23.5"
 matplotlib = "3.5.1"
 simplification = "0.6.2"
 plotly = "5.11.0"
-astropy = "5.1"
+astropy = "^5.1"
 Scikit-spatial = "6.8.0"
 kaleido = "0.2.1"
 streamlit = "1.33.0"
@@ -30,5 +30,5 @@ graft-cli = "graft.cli:main"
 graft-webapp = "graft.streamlit_app:run"
 
 [build-system]
-requires = ["poetry-core>=1.0.0"]
+requires = ["poetry-core>=1.0.0", "setuptools>=58.0.0"]
 build-backend = "poetry.core.masonry.api"
