@@ -169,7 +169,7 @@ def perform_time_series_analysis(input_image, mask, output_dir, params):
     """
     with st.spinner('Running analysis... Please wait'):
         create_all(pathsave=str(output_dir), img_o=input_image, maskDraw=mask,
-                   size=params["Merge Radius (Size)"], eps=params["Epsilon"],
+                   size=params["Merge Radius (Size)"], eps=params["Bendiness"],
                    thresh_top=params["Thresh Top"], sigma=params["Smoothing"],
                    small=params["Noisy Objects"], angleA=params["Minimum Angle"],
                    overlap=params["Overlap"], max_cost=params["Allowed Movement"],
@@ -182,7 +182,7 @@ def perform_still_image_analysis(input_image, mask, output_dir, params):
     """
     with st.spinner('Running analysis... Please wait'):
         create_all_still(pathsave=str(output_dir), img_o=input_image, maskDraw=mask,
-                         size=params["Merge Radius (Size)"], eps=params["Epsilon"],
+                         size=params["Merge Radius (Size)"], eps=params["Bendiness"],
                          thresh_top=params["Thresh Top"], sigma=params["Smoothing"],
                          small=params["Noisy Objects"], angleA=params["Minimum Angle"],
                          overlap=params["Overlap"], name_cell='in silico still')
@@ -222,8 +222,17 @@ The minimum angle is set by the user, and calculated by the algorithm. If the us
         "Allowed Movement": st.sidebar.slider('Allowed Movement', 25, 200, 50, on_change=reset_session_state,
         help="""Timeseries parameter. This parameter controls the maximum allowed distance filaments are allowed to move between frames. The distance is given as the Frobenius norm of the positions of end nodes between two potential matches. If this parameter is set low, only small perturbations between frames are allowed, if set high, filamentous structures are allowed to move further between frames. This is dependent on the dynamics and time interval of your image data, we recommend starting at 50."""),
         
-        "Merge Radius (Size)": st.sidebar.slider('Merge Radius (Size)', 1, 30, 6, on_change=reset_session_state),
-        "Epsilon": st.sidebar.slider('Epsilon', 1, 400, 200, on_change=reset_session_state),
+        "Merge Radius (Size)": st.sidebar.select_slider(
+            'Merge Radius (Size)', 
+            options=[i for i in range(2, 21, 2)], 
+            value=6, 
+            on_change=reset_session_state,
+            help='This parameter allows "melting" nodes together. This is important due to potential errors in the segmentation step. Set this value according to the amount of noise and blur present in your image. Low values (2-6) for low noise images, and higher if working with more noisy image data.'),
+        
+        "Bendiness": st.sidebar.slider('Bendiness', 1, 400, 200, on_change=reset_session_state,
+        help="""This parameter allows additions of nodes to express the underlying filamentous structures bendiness better.
+This value should be a reflection of how bendy the filamentous structures you work with are. If set low, it will add more nodes, higher and fewer nodes will be added."""),
+
         "Thresh Top": st.sidebar.slider('Thresh Top', 0.0, 1.0, 0.5, on_change=reset_session_state)
     }
 
