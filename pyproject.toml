@@ -6,7 +6,7 @@ authors = ["Isabella Østerlund <isa@plen.ku.dk>"]
 maintainers = ["Arne Neumann <graft.programming@arne.cl>"]
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = ">=3.8,<3.9.7 || >3.9.7,<4.0"
 NetworkX = "2.8.4"
 scikit-image = "0.19.3"
 scipy = "1.9.3"
