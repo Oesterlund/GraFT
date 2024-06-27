@@ -171,7 +171,7 @@ def perform_time_series_analysis(input_image, mask, output_dir, params):
         create_all(pathsave=str(output_dir), img_o=input_image, maskDraw=mask,
                    size=params["Merge Radius (Size)"], eps=params["Epsilon"],
                    thresh_top=params["Thresh Top"], sigma=params["Smoothing"],
-                   small=params["Small"], angleA=params["Angle A"],
+                   small=params["Noisy Objects"], angleA=params["Angle A"],
                    overlap=params["Overlap"], max_cost=params["Max Cost"],
                    name_cell='in silico time')
 
@@ -184,7 +184,7 @@ def perform_still_image_analysis(input_image, mask, output_dir, params):
         create_all_still(pathsave=str(output_dir), img_o=input_image, maskDraw=mask,
                          size=params["Merge Radius (Size)"], eps=params["Epsilon"],
                          thresh_top=params["Thresh Top"], sigma=params["Smoothing"],
-                         small=params["Small"], angleA=params["Angle A"],
+                         small=params["Noisy Objects"], angleA=params["Angle A"],
                          overlap=params["Overlap"], name_cell='in silico still')
 
 
@@ -209,7 +209,8 @@ def main():
         "Smoothing": st.sidebar.select_slider(
 			'Smoothing', options=[0, 0.5, 1, 1.5, 2, 2.5, 3], value=1.0, on_change=reset_session_state,
 			help='Parameter for adding Gaussian blur, to fix potential breakage from noisy image data. This value should be kept low (1-2). If you have very noisy data, try setting this value higher.'),
-        "Small": st.sidebar.slider('Small', 30.0, 100.0, 50.0, on_change=reset_session_state),
+		"Noisy Objects": st.sidebar.slider('Noisy Objects', 10.0, 100.0, 50.0, on_change=reset_session_state,
+            help='Removes small objects. The algorithm will remove small discrete clusters of pixels dependent on the threshold defined here. Set this value depending on the need: if you work with non-noisy image data with fine tubular structures, set it to a low value (10); if working with more noisy data, we recommend going higher (50 or up).'),
         "Angle A": st.sidebar.slider('Angle A', 100, 180, 140, on_change=reset_session_state),
         "Overlap": st.sidebar.slider('Overlap', 1, 10, 4, on_change=reset_session_state),
         "Max Cost": st.sidebar.slider('Max Cost', 50, 200, 100, on_change=reset_session_state),
