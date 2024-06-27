@@ -208,33 +208,29 @@ def main():
     params = {  # all slider values: min, max, default
         "Smoothing": st.sidebar.select_slider(
 			'Smoothing', options=[0, 0.5, 1, 1.5, 2, 2.5, 3], value=1.0, on_change=reset_session_state,
-			help='Parameter for adding Gaussian blur, to fix potential breakage from noisy image data. This value should be kept low (1-2). If you have very noisy data, try setting this value higher.'),
-		"Noisy Objects": st.sidebar.slider('Noisy Objects', 10.0, 100.0, 50.0, on_change=reset_session_state,
-            help='Removes small objects. The algorithm will remove small discrete clusters of pixels dependent on the threshold defined here. Set this value depending on the need: if you work with non-noisy image data with fine tubular structures, set it to a low value (10); if working with more noisy data, we recommend going higher (50 or up).'),
-
-        "Minimum Angle": st.sidebar.slider('Minimum Angle', 100, 180, 140, on_change=reset_session_state,
-        help="""The minimum angle is used for tracing filamentous structures. The tracing is done as a depth first search which is constrained on angles based on the spatial positions of the nodes. The angle defined here, is the minimum allowed angle which is allowed in a search for visiting nodes.
-The minimum angle is set by the user, and calculated by the algorithm. If the user defined angle is lower than the calculated angle, the user defined minimum angle is used."""),
-
-        "Overlap": st.sidebar.slider('Overlap', 1, 10, 4, on_change=reset_session_state,
-        help="""The overlap parameter is the amount of a filament length that is allowed to be shared between filaments. It is defined as (defined filament)/overlap, which means that if the value is 4, you allow 1/4 of the path to be shared. If you work with a system where not much overlap is occurring, set this to a higher value (lower allowed overlap), alternatively if working with a system with overlap, set it lower. From experiments, we found that 4 is a good value for actin."""),
-        
-        "Allowed Movement": st.sidebar.slider('Allowed Movement', 25, 200, 50, on_change=reset_session_state,
-        help="""Timeseries parameter. This parameter controls the maximum allowed distance filaments are allowed to move between frames. The distance is given as the Frobenius norm of the positions of end nodes between two potential matches. If this parameter is set low, only small perturbations between frames are allowed, if set high, filamentous structures are allowed to move further between frames. This is dependent on the dynamics and time interval of your image data, we recommend starting at 50."""),
-        
+			help='Applies Gaussian blur to fix potential breakage from noisy image data. Keep this value low (1-2) for most cases. If you have very noisy data, try setting this value higher.'),
+		"Noisy Objects": st.sidebar.slider(
+			'Noisy Objects', 10.0, 100.0, 50.0, on_change=reset_session_state,
+			help='Removes small objects by eliminating discrete clusters of pixels below the specified threshold. For non-noisy images with fine tubular structures, use a low value (around 10). For noisier data, use higher values (50 or above).'),
+        "Minimum Angle": st.sidebar.slider(
+			'Minimum Angle', 100, 180, 140, on_change=reset_session_state,
+			help='Used for tracing filamentous structures. The tracing is done via depth-first search, constrained by angles based on the spatial positions of the nodes. This parameter sets the minimum allowed angle for visiting nodes during the search. If the user-defined angle is lower than the calculated angle, the user-defined minimum angle is used.'),
+        "Overlap": st.sidebar.slider(
+			'Overlap', 1, 10, 4, on_change=reset_session_state,
+			help="Defines the amount of a filament's length that can be shared between filaments. It's calculated as (defined filament)/overlap. For example, a value of 4 allows 1/4 of the path to be shared. Use higher values (less overlap) for systems with minimal overlap, and lower values for systems with more overlap. Experiments suggest 4 is optimal for actin."),
+        "Allowed Movement": st.sidebar.slider(
+			'Allowed Movement', 25, 200, 50, on_change=reset_session_state,
+			help="Time series parameter. Controls the maximum allowed distance filaments can move between frames. The distance is calculated as the Frobenius norm of the end node positions between potential matches. Lower values restrict movement to small perturbations between frames, while higher values allow for greater movement. This depends on your image data's dynamics and time interval. We recommend starting at 50."),
         "Merge Radius (Size)": st.sidebar.select_slider(
             'Merge Radius (Size)', 
             options=[i for i in range(2, 21, 2)], 
             value=6, 
-            on_change=reset_session_state,
-            help='This parameter allows "melting" nodes together. This is important due to potential errors in the segmentation step. Set this value according to the amount of noise and blur present in your image. Low values (2-6) for low noise images, and higher if working with more noisy image data.'),
-        
+            on_change=reset_session_state,        
+			help='Allows "melting" of nodes to compensate for potential errors in the segmentation step. Set this value based on the amount of noise and blur in your image. Use low values (2-6) for low-noise images, and higher values for noisier image data.'),
         "Bendiness": st.sidebar.slider('Bendiness', 1, 400, 200, on_change=reset_session_state,
-        help="""This parameter allows additions of nodes to express the underlying filamentous structures bendiness better.
-This value should be a reflection of how bendy the filamentous structures you work with are. If set low, it will add more nodes, higher and fewer nodes will be added."""),
-
-        "Fine Structure Sensitivity": st.sidebar.slider('Fine Structure Sensitivity', 0.01, 0.7, 0.5, on_change=reset_session_state,
-        help="""This parameter adjusts the lower value given to the hysteresis threshold applied on the image data. This filter helps eliminate noise and uneven backgrounds. The upper threshold is calculated using Otsus method. Set this to a low value, if you want to catch fine filamentous structures(0.1), and higher (0.5) with more noise in the image.""")
+			help='Controls the addition of nodes to better express the "bendiness" of underlying filamentous structures. Set this value to reflect how bendy your filamentous structures are. Lower values add more nodes, while higher values add fewer nodes.'),
+        "Fine Structure Sensitivity": st.sidebar.slider('Fine Structure Sensitivity', 0.01, 0.7, 0.5, on_change=reset_session_state,        
+			help="Adjusts the lower value of the hysteresis threshold applied to the image data. This filter helps eliminate noise and uneven backgrounds. The upper threshold is calculated using Otsu's method. Use lower values (around 0.1) to capture fine filamentous structures, and higher values (around 0.5) for noisier images.")
     }
 
     if uploaded_file is not None:
