@@ -1,36 +1,34 @@
-[build-system]
-requires = ["setuptools>=42", "wheel"]
-build-backend = "setuptools.build_meta"
-
-[project]
+[tool.poetry]
 name = "GraFT"
 version = "0.1.0"
 description = "A Python package for analysing a graph of filaments over time."
-authors = [
-    { name = "Isabella Østerlund", email = "isa@plen.ku.dk" }
-]
-maintainers = [
-    { name = "Arne Neumann", email = "graft.programming@arne.cl" }
-]
+authors = ["Isabella Østerlund <isa@plen.ku.dk>"]
+maintainers = ["Arne Neumann <graft.programming@arne.cl>"]
 
-dependencies = [
-    "NetworkX==2.8.4",
-    "scikit-image==0.19.3",
-    "scipy==1.9.3",
-    "pandas==1.4.4",
-    "numpy==1.23.5",
-    "matplotlib==3.5.1",
-    "simplification==0.6.2",
-    "plotly==5.11.0",
-    "astropy==5.1",
-    "Scikit-spatial==6.8.0",
-    "kaleido==0.2.1",
-    "streamlit==1.33.0",
-    "pytest>=8.0",
-    "memory_profiler==0.61.0",
-    "line_profiler==4.1.3"
-]
+[tool.poetry.dependencies]
+python = ">=3.8,<3.9.7 || >3.9.7,<4.0"
+NetworkX = "2.8.4"
+scikit-image = "0.19.3"
+scipy = "1.9.3"
+pandas = "1.4.4"
+numpy = "1.23.5"
+matplotlib = "3.5.1"
+simplification = "0.6.2"
+plotly = "5.11.0"
+astropy = "^5.1"
+Scikit-spatial = "6.8.0"
+kaleido = "0.2.1"
+streamlit = "1.33.0"
+pytest = "^8.0"
+memory_profiler = "0.61.0"
 
-[project.entry-points.console_scripts]
+[tool.poetry.group.dev.dependencies]
+line_profiler = "4.1.3"
+
+[tool.poetry.scripts]
 graft-cli = "graft.cli:main"
 graft-webapp = "graft.streamlit_app:run"
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "setuptools>=58.0.0"]
+build-backend = "poetry.core.masonry.api"
