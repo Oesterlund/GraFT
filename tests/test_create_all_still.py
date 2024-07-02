@@ -15,6 +15,7 @@ import skimage.io as io
 import pytest
 
 from graft.main import create_all_still
+from graft.utilsF import get_tiff_path
 from tests import assert_csv_files_equal, compare_images
 
 
@@ -23,7 +24,7 @@ def test_env():
     # get the path of the directory that contains this script
     test_dir = os.path.dirname(os.path.realpath(__file__))
 
-    image_path = os.path.join(test_dir, "..", "src", "graft", "tiff", "still_image.tif")
+    image_path = os.path.join(get_tiff_path("still_image.tif"))
     test_output_dir = os.path.join(test_dir, "..", "test_output", "create_all_still")
     expected_output_dir = os.path.join(test_dir, "expected_output", "create_all_still")
 

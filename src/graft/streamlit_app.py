@@ -17,7 +17,7 @@ from skimage import io as skimage_io
 from graft.main import (
     create_all, create_all_still, create_output_dirs, generate_default_mask
 )
-
+from graft.utilsF import get_tiff_path
 
 # regex to find numbers in a string
 INTEGER_RE = re.compile(r"(\d+)")

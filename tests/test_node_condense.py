@@ -32,7 +32,7 @@ def run_node_condense_test(node_condense_func):
     total_memory_used = 0
     results = []
 
-    # The input data is the same as `src/graft/tiff/timeseries.tif` but stored
+    # The input data is the same as `src/graft/data/timeseries.tif` but stored
     # as individual sparse matrices.
     for input_file in input_files:
         input_path = os.path.join(node_condense_capture_path, input_file)

@@ -12,6 +12,7 @@ import os
 import skimage.io as io
 
 from graft.main import create_all, create_all_still
+from graft.utilsF import get_tiff_path
 
 # Get the directory containing this script.
 base_path = os.path.dirname(os.path.abspath(__file__))
@@ -32,7 +33,7 @@ if __name__ == '__main__':
     ######################
     # timeseries
 
-    img_o = io.imread(os.path.join(base_path, "tiff", "timeseries.tif"))
+    img_o = io.imread(get_tiff_path("timeseries.tif"))
     maskDraw = np.ones((img_o.shape[1:3]))
     create_all(pathsave=os.path.join(base_path, "timeseries"),
                img_o=img_o,
@@ -43,7 +44,7 @@ if __name__ == '__main__':
     ######################
     # one image
 
-    img = io.imread(os.path.join(base_path, "tiff", "timeseries.tif"))
+    img = io.imread(get_tiff_path("timeseries.tif"))
     img_still = img_o[0]
     maskDraw = np.ones((img.shape[1:3]))
     create_all_still(pathsave=os.path.join(base_path, "still"),
