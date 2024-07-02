@@ -200,7 +200,12 @@ def main():
         st.session_state['params'] = None
 
     # Main Page
-    st.title('GraFT: Graph of Filaments over Time')
+    title_str = 'GraFT: Graph of Filaments over Time'
+    st.set_page_config(page_title=title_str)
+    st.title(title_str)
+    description = """**GraFT** is a tool designed for identifying and tracking filamentous structures from 2D time-series image data. The source code is available [here](https://github.com/Oesterlund/GraFT)."""
+    st.markdown(description)
+    
     uploaded_file = st.file_uploader("Upload TIFF file", type=['tif', 'tiff'], on_change=reset_session_state)
 
     # Sidebar for configuration
