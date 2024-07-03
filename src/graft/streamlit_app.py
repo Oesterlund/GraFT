@@ -121,18 +121,21 @@ def display_analysis_results(output_dir, subdirs):
             else:
                 st.write(f"No images found in {subdir}.")
 
-
-def run_analysis(uploaded_file, params):
+def run_analysis(file, params, is_example=False):
     """
-    Run the analysis on the uploaded TIFF file with given parameters.
+    Run the analysis on the TIFF file with given parameters.
     """
-    bytes_data = BytesIO(uploaded_file.getvalue())
     try:
         # Use tifffile to read the TIFF file
-        input_image = tiff.imread(bytes_data)
+        if isinstance(file, (str, os.PathLike)):  # If it's a file path
+            input_image = tiff.imread(file)
+            file_path = file
+        else:  # If it's an uploaded file
+            input_image = tiff.imread(BytesIO(file.getvalue()))
+            file_path = file
 
         if input_image.ndim not in (2, 3):
-            raise ValueError(f"Uploaded image is not a tiff still image or time-series. Expected image with 2 or 3 dimensions, got: {input_image.shape}.")
+            raise ValueError(f"Image is not a tiff still image or time-series. Expected image with 2 or 3 dimensions, got: {input_image.shape}.")
 
         mask = generate_default_mask(input_image.shape)
 
@@ -153,7 +156,14 @@ def run_analysis(uploaded_file, params):
         st.success(f"Analysis completed! Time taken: {time.time() - start_time:.2f} seconds.")
         st.session_state['analysis_results'] = True
         st.session_state['output_dir'] = output_dir
-        st.session_state['md5_sum'] = get_md5sum(uploaded_file)
+        
+        if is_example:
+            with open(file_path, 'rb') as f:
+                md5_sum = hashlib.md5(f.read()).hexdigest()
+        else:
+            md5_sum = get_md5sum(file)
+        
+        st.session_state['md5_sum'] = md5_sum
         st.session_state['params'] = params
 
         add_results_download_button(st.session_state['output_dir'], st.session_state['md5_sum'], st.session_state['params'])
@@ -161,6 +171,7 @@ def run_analysis(uploaded_file, params):
 
     except Exception as e:
         st.error(str(e))
+
 
 
 def perform_time_series_analysis(input_image, mask, output_dir, params):
@@ -220,8 +231,7 @@ def main():
             "Choose an example image:",
             ("still_image.tif", "timeseries.tif")
         )
-        example_path = get_tiff_path(example_choice)
-        uploaded_file = open(example_path, "rb")
+        uploaded_file = get_tiff_path(example_choice)
 
     # Sidebar for configuration
     st.sidebar.title("Configuration")
@@ -256,10 +266,8 @@ def main():
     if uploaded_file is not None:
         st.session_state['params'] = params
         if st.button('Run Analysis'):
-            run_analysis(uploaded_file, params)
+            run_analysis(uploaded_file, params, is_example=(image_source == "Use example image"))
 
-    if image_source == "Use example image":
-        uploaded_file.close()  # manually close the file if it's an example image
 
 
 if __name__ == "__main__":
