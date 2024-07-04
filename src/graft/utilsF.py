@@ -29,7 +29,7 @@ from astropy import units as u
 from skspatial.objects import Line, Point
 import pickle
 import functools
-from importlib import resources
+import pkg_resources
 
 from graft.node_condense import node_condense_faster_modularized
 
@@ -2801,7 +2801,7 @@ def track_move(g_tagged,posL,img_o,memKeep, max_cost,path,pd_fil_info):
     return pd_full
 
 def get_tiff_path(filename):
-    """Given the name of an example file included in the graft Python package, return its absolute path."""
-    with resources.path('graft.data', filename) as path:
-        return str(path)
-
+    """
+    Get the path to a TIFF file in the package data.
+    """
+    return pkg_resources.resource_filename('graft.data', filename)

@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "A Python package for analysing a graph of filaments over time."
 authors = ["Isabella Østerlund <isa@plen.ku.dk>"]
 maintainers = ["Arne Neumann <graft.programming@arne.cl>"]
-packages = [{ include = "graft", from = "src" }]
+packages = [
+    { include = "graft", from = "src" },
+    { include = "graft/data", from = "src" }
+]
 include = ["src/graft/data/*.tif"]
 
 [tool.poetry.dependencies]
