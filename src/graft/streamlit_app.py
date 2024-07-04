@@ -17,7 +17,7 @@ from skimage import io as skimage_io
 from graft.main import (
     create_all, create_all_still, create_output_dirs, generate_default_mask
 )
-
+from graft.utilsF import get_tiff_path
 
 # regex to find numbers in a string
 INTEGER_RE = re.compile(r"(\d+)")
@@ -121,18 +121,21 @@ def display_analysis_results(output_dir, subdirs):
             else:
                 st.write(f"No images found in {subdir}.")
 
-
-def run_analysis(uploaded_file, params):
+def run_analysis(file, params, is_example=False):
     """
-    Run the analysis on the uploaded TIFF file with given parameters.
+    Run the analysis on the TIFF file with given parameters.
     """
-    bytes_data = BytesIO(uploaded_file.getvalue())
     try:
         # Use tifffile to read the TIFF file
-        input_image = tiff.imread(bytes_data)
+        if isinstance(file, (str, os.PathLike)):  # If it's a file path
+            input_image = tiff.imread(file)
+            file_path = file
+        else:  # If it's an uploaded file
+            input_image = tiff.imread(BytesIO(file.getvalue()))
+            file_path = file
 
         if input_image.ndim not in (2, 3):
-            raise ValueError(f"Uploaded image is not a tiff still image or time-series. Expected image with 2 or 3 dimensions, got: {input_image.shape}.")
+            raise ValueError(f"Image is not a tiff still image or time-series. Expected image with 2 or 3 dimensions, got: {input_image.shape}.")
 
         mask = generate_default_mask(input_image.shape)
 
@@ -153,7 +156,14 @@ def run_analysis(uploaded_file, params):
         st.success(f"Analysis completed! Time taken: {time.time() - start_time:.2f} seconds.")
         st.session_state['analysis_results'] = True
         st.session_state['output_dir'] = output_dir
-        st.session_state['md5_sum'] = get_md5sum(uploaded_file)
+        
+        if is_example:
+            with open(file_path, 'rb') as f:
+                md5_sum = hashlib.md5(f.read()).hexdigest()
+        else:
+            md5_sum = get_md5sum(file)
+        
+        st.session_state['md5_sum'] = md5_sum
         st.session_state['params'] = params
 
         add_results_download_button(st.session_state['output_dir'], st.session_state['md5_sum'], st.session_state['params'])
@@ -161,6 +171,7 @@ def run_analysis(uploaded_file, params):
 
     except Exception as e:
         st.error(str(e))
+
 
 
 def perform_time_series_analysis(input_image, mask, output_dir, params):
@@ -203,45 +214,61 @@ def main():
     title_str = 'GraFT: Graph of Filaments over Time'
     st.set_page_config(page_title=title_str)
     st.title(title_str)
-    description = """**GraFT** is a tool designed for identifying and tracking filamentous structures from 2D time-series image data. The source code is available [here](https://github.com/Oesterlund/GraFT)."""
-    st.markdown(description)
-    
-    uploaded_file = st.file_uploader("Upload TIFF file", type=['tif', 'tiff'], on_change=reset_session_state)
+
+    with st.container(border=True):
+        description = """**GraFT** is a tool designed for identifying and tracking filamentous structures from 2D time-series image data. The source code is available [here](https://github.com/Oesterlund/GraFT)."""
+        st.markdown(description)
+
+    image_source = st.radio(
+        "Choose image source:",
+        ("Upload your own image", "Use example image")
+    )
+
+    if image_source == "Upload your own image":
+        uploaded_file = st.file_uploader("Upload TIFF file", type=['tif', 'tiff'], on_change=reset_session_state)
+    else:
+        example_choice = st.selectbox(
+            "Choose an example image:",
+            ("still_image.tif", "timeseries.tif")
+        )
+        uploaded_file = get_tiff_path(example_choice)
 
     # Sidebar for configuration
     st.sidebar.title("Configuration")
     params = {  # all slider values: min, max, default
         "Smoothing": st.sidebar.select_slider(
-			'Smoothing', options=[0, 0.5, 1, 1.5, 2, 2.5, 3], value=1.0, on_change=reset_session_state,
-			help='Applies Gaussian blur to fix potential breakage from noisy image data. Keep this value low (1-2) for most cases. If you have very noisy data, try setting this value higher.'),
-		"Noisy Objects": st.sidebar.slider(
-			'Noisy Objects', 10.0, 100.0, 50.0, on_change=reset_session_state,
-			help='Removes small objects by eliminating discrete clusters of pixels below the specified threshold. For non-noisy images with fine tubular structures, use a low value (around 10). For noisier data, use higher values (50 or above).'),
+            'Smoothing', options=[0, 0.5, 1, 1.5, 2, 2.5, 3], value=1.0, on_change=reset_session_state,
+            help='Applies Gaussian blur to fix potential breakage from noisy image data. Keep this value low (1-2) for most cases. If you have very noisy data, try setting this value higher.'),
+        "Noisy Objects": st.sidebar.slider(
+            'Noisy Objects', 10.0, 100.0, 50.0, on_change=reset_session_state,
+            help='Removes small objects by eliminating discrete clusters of pixels below the specified threshold. For non-noisy images with fine tubular structures, use a low value (around 10). For noisier data, use higher values (50 or above).'),
         "Minimum Angle": st.sidebar.slider(
-			'Minimum Angle', 100, 180, 140, on_change=reset_session_state,
-			help='Used for tracing filamentous structures. The tracing is done via depth-first search, constrained by angles based on the spatial positions of the nodes. This parameter sets the minimum allowed angle for visiting nodes during the search. If the user-defined angle is lower than the calculated angle, the user-defined minimum angle is used.'),
+            'Minimum Angle', 100, 180, 140, on_change=reset_session_state,
+            help='Used for tracing filamentous structures. The tracing is done via depth-first search, constrained by angles based on the spatial positions of the nodes. This parameter sets the minimum allowed angle for visiting nodes during the search. If the user-defined angle is lower than the calculated angle, the user-defined minimum angle is used.'),
         "Overlap": st.sidebar.slider(
-			'Overlap', 1, 10, 4, on_change=reset_session_state,
-			help="Defines the amount of a filament's length that can be shared between filaments. It's calculated as (defined filament)/overlap. For example, a value of 4 allows 1/4 of the path to be shared. Use higher values (less overlap) for systems with minimal overlap, and lower values for systems with more overlap. Experiments suggest 4 is optimal for actin."),
+            'Overlap', 1, 10, 4, on_change=reset_session_state,
+            help="Defines the amount of a filament's length that can be shared between filaments. It's calculated as (defined filament)/overlap. For example, a value of 4 allows 1/4 of the path to be shared. Use higher values (less overlap) for systems with minimal overlap, and lower values for systems with more overlap. Experiments suggest 4 is optimal for actin."),
         "Allowed Movement": st.sidebar.slider(
-			'Allowed Movement', 25, 200, 50, on_change=reset_session_state,
-			help="Time series parameter. Controls the maximum allowed distance filaments can move between frames. The distance is calculated as the Frobenius norm of the end node positions between potential matches. Lower values restrict movement to small perturbations between frames, while higher values allow for greater movement. This depends on your image data's dynamics and time interval. We recommend starting at 50."),
+            'Allowed Movement', 25, 200, 50, on_change=reset_session_state,
+            help="Time series parameter. Controls the maximum allowed distance filaments can move between frames. The distance is calculated as the Frobenius norm of the end node positions between potential matches. Lower values restrict movement to small perturbations between frames, while higher values allow for greater movement. This depends on your image data's dynamics and time interval. We recommend starting at 50."),
         "Merge Radius (Size)": st.sidebar.select_slider(
-            'Merge Radius (Size)', 
-            options=[i for i in range(2, 21, 2)], 
-            value=6, 
-            on_change=reset_session_state,        
-			help='Allows "melting" of nodes to compensate for potential errors in the segmentation step. Set this value based on the amount of noise and blur in your image. Use low values (2-6) for low-noise images, and higher values for noisier image data.'),
+            'Merge Radius (Size)',
+            options=[i for i in range(2, 21, 2)],
+            value=6,
+            on_change=reset_session_state,
+            help='Allows "melting" of nodes to compensate for potential errors in the segmentation step. Set this value based on the amount of noise and blur in your image. Use low values (2-6) for low-noise images, and higher values for noisier image data.'),
         "Bendiness": st.sidebar.slider('Bendiness', 1, 400, 200, on_change=reset_session_state,
-			help='Controls the addition of nodes to better express the "bendiness" of underlying filamentous structures. Set this value to reflect how bendy your filamentous structures are. Lower values add more nodes, while higher values add fewer nodes.'),
-        "Fine Structure Sensitivity": st.sidebar.slider('Fine Structure Sensitivity', 0.01, 0.7, 0.5, on_change=reset_session_state,        
-			help="Adjusts the lower value of the hysteresis threshold applied to the image data. This filter helps eliminate noise and uneven backgrounds. The upper threshold is calculated using Otsu's method. Use lower values (around 0.1) to capture fine filamentous structures, and higher values (around 0.5) for noisier images.")
+            help='Controls the addition of nodes to better express the "bendiness" of underlying filamentous structures. Set this value to reflect how bendy your filamentous structures are. Lower values add more nodes, while higher values add fewer nodes.'),
+        "Fine Structure Sensitivity": st.sidebar.slider('Fine Structure Sensitivity', 0.01, 0.7, 0.5, on_change=reset_session_state,
+            help="Adjusts the lower value of the hysteresis threshold applied to the image data. This filter helps eliminate noise and uneven backgrounds. The upper threshold is calculated using Otsu's method. Use lower values (around 0.1) to capture fine filamentous structures, and higher values (around 0.5) for noisier images.")
     }
 
     if uploaded_file is not None:
         st.session_state['params'] = params
         if st.button('Run Analysis'):
-            run_analysis(uploaded_file, params)
+            run_analysis(uploaded_file, params, is_example=(image_source == "Use example image"))
+
+
 
 if __name__ == "__main__":
     main()
