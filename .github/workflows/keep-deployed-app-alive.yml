@@ -3,8 +3,8 @@ name: Ping deployed app
 on:
   schedule:
     # * is a special character in YAML so you have to quote this string.
-    # /30 denotes that it will run once every 30 minutes
-    - cron:  '*/30 * * * *'
+    # /300 denotes that it will run once every 300 minutes
+    - cron:  '*/300 * * * *'
   workflow_dispatch:  # Allows manual triggering
 
 jobs: 
