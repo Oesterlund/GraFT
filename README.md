@@ -36,8 +36,8 @@ Current libraries with versions was used to build the code:
 
 I recommend creating a new python environment using conda and activate it to install dependencies
 ```
-conda create -n cdfs python
-conda activate cdfs
+conda create -n graft python=3.8
+conda activate graft
 ```
 And install the package and its dependencies using pip:
 
