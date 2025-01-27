@@ -34,7 +34,9 @@ Current libraries with versions was used to build the code:
 - pickle 4.0
 - scikit-spatial 6.8.0
 
-I recommend creating a new python environment using conda and activate it to install dependencies
+## Installation
+
+I recommend creating a new Python environment using [conda](https://www.anaconda.com/download/success#miniconda) and activate it to install dependencies
 ```
 conda create -n graft python=3.8
 conda activate graft
