@@ -59,7 +59,7 @@ graft-cli still src/graft/data/still_image.tif /tmp/graft_output
 
 ### GraFT Python library
 
-GraFT can also be as a library. For a concrete usage example, see `src/graft/example_run.py`.
+GraFT can also be used as a library. For a concrete usage example, see `src/graft/example_run.py`.
 
 
 # Workflow
