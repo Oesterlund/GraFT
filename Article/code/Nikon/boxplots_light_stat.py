@@ -15,17 +15,28 @@ import astropy.stats
 import plotly.graph_objects as go
 from astropy import units as u
 from statannotations.Annotator import Annotator
+import scienceplots
 
-plt.rc('xtick', labelsize=25) 
-plt.rc('ytick', labelsize=25) 
-
-figsize = 9,6
-sizeL=25
+plt.style.use(['science','nature']) # sans-serif font
 plt.close('all')
 
+plt.rc('xtick', labelsize=12) 
+plt.rc('ytick', labelsize=12) 
+plt.rc('axes', labelsize=12)
+
+params = {'legend.fontsize': 12,
+         'axes.labelsize': 12,
+         'axes.titlesize':12,
+         'xtick.labelsize':12,
+         'ytick.labelsize':12}
+plt.rcParams.update(params)
+
+
+cmap=sns.color_palette("colorblind")
+
+pixelS = 0.065
 cmap=sns.color_palette("Set2")
-sns.set_style("white")
-sns.set_style("ticks")
+
 ###############################################################################
 #
 # functions
@@ -264,37 +275,77 @@ for i in range(len(list_plots)):
 
 plt.close('all')
 
-plt.figure(figsize=figsize)
-plt.hist(df_all["mean length per filament"][df_all['cell name']=='Control'],bins=50, density=True,alpha=0.5,label='Control')
-plt.xlim(0,1650)
-plt.ylim(0,0.018)
-plt.legend(fontsize=20)
+plt.figure(figsize=(8.27/2, 2.5))
+plt.hist(df_all["mean length per filament"][df_all['cell name']=='Control']*pixelS,bins=50, density=False,alpha=0.5,label='Control')
+#plt.xlim(0,1300)
+#plt.ylim(0,0.023)
+plt.xlabel('Length [$\mu$m]')
+plt.ylabel('Counts')
+plt.legend(fontsize=12)
 plt.tight_layout()
 plt.savefig(pathsave+'hist_control.png')
 
-plt.figure(figsize=figsize)
-plt.hist(df_all["mean length per filament"][df_all['cell name']=='0-10 mins'],bins=50, density=True,alpha=0.5,label='0-10 mins')
-plt.xlim(0,1650)
-plt.ylim(0,0.018)
-plt.legend(fontsize=20)
+plt.figure(figsize=(8.27/2, 2.5))
+plt.hist(df_all["mean length per filament"][df_all['cell name']=='0-10 mins']*pixelS,bins=50, density=False,alpha=0.5,label='0-10 mins')
+#plt.xlim(0,1300)
+#plt.ylim(0,0.023)
+plt.xlabel('Length [$\mu$m]')
+plt.ylabel('Counts')
+plt.legend(fontsize=12)
 plt.tight_layout()
 plt.savefig(pathsave+'hist_0-10.png')
 
-plt.figure(figsize=figsize)
-plt.hist(df_all["mean length per filament"][df_all['cell name']=='10-20 mins'],bins=50, density=True,alpha=0.5,label='10-20 mins')
-plt.xlim(0,1650)
-plt.ylim(0,0.018)
-plt.legend(fontsize=20)
+plt.figure(figsize=(8.27/2, 2.5))
+plt.hist(df_all["mean length per filament"][df_all['cell name']=='10-20 mins']*pixelS,bins=50, density=False,alpha=0.5,label='10-20 mins')
+#plt.xlim(0,1300)
+#plt.ylim(0,0.023)
+plt.xlabel('Length [$\mu$m]')
+plt.ylabel('Counts')
+plt.legend(fontsize=12)
 plt.tight_layout()
 plt.savefig(pathsave+'hist_10-20.png')
 
-plt.figure(figsize=figsize)
-plt.hist(df_all["mean length per filament"][df_all['cell name']=='20-30 mins'],bins=50, density=True,alpha=0.5,label='20-30 mins')
-plt.xlim(0,1650)
-plt.ylim(0,0.018)
-plt.legend(fontsize=20)
+plt.figure(figsize=(8.27/2, 2.5))
+plt.hist(df_all["mean length per filament"][df_all['cell name']=='20-30 mins']*pixelS,bins=50, density=False,alpha=0.5,label='20-30 mins')
+#plt.xlim(0,1300)
+#plt.ylim(0,0.023)
+plt.xlabel('Length [$\mu$m]')
+plt.ylabel('Counts')
+plt.legend(fontsize=12)
 plt.tight_layout()
 plt.savefig(pathsave+'hist_20-30.png')
+
+
+
+fig, axd = plt.subplot_mosaic("ABC", figsize=(8.27,3))
+
+axd['A'].hist(df_all["mean length per filament"][df_all['cell name']=='0-10 mins']*pixelS,bins=50, density=False,alpha=0.5,label='0-10 mins')
+axd['B'].hist(df_all["mean length per filament"][df_all['cell name']=='10-20 mins']*pixelS,bins=50, density=False,alpha=0.5,label='10-20 mins')
+axd['C'].hist(df_all["mean length per filament"][df_all['cell name']=='20-30 mins']*pixelS,bins=50, density=False,alpha=0.5,label='20-30 mins')
+
+
+axd['A'].hist(df_all["mean length per filament"][df_all['cell name']=='Control']*pixelS,bins=50, density=False,alpha=1,color='#FF6700',label='Control')
+axd['B'].hist(df_all["mean length per filament"][df_all['cell name']=='DSF']*pixelS,bins=50, density=False,alpha=1,color='darkturquoise',label='DSF')
+axd['C'].hist(df_all["mean length per filament"][df_all['cell name']=='flg22']*pixelS,bins=50, density=False,alpha=1,color='indigo',label='flg22')
+
+axd['A'].set_xlabel('Length [$\mu$m]')
+axd['B'].set_xlabel('Length [$\mu$m]')
+axd['C'].set_xlabel('Length [$\mu$m]')
+
+axd['A'].set_ylabel("Counts")
+#axd['A'].sharey(axd['B'])
+#axd['B'].sharey(axd['C'])
+
+for n, (key, ax) in enumerate(axd.items()):
+
+    ax.text(-0.1, 1.1, key, transform=ax.transAxes, 
+            size=12, weight='bold')
+
+#plt.legend(fontsize=25,frameon=False)
+plt.tight_layout()
+plt.savefig(pathsave + 'histograms_lightLatb.pdf')
+
+
 
 ###############################################################################
 #

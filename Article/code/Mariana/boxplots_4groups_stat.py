@@ -12,24 +12,36 @@ import pandas as pd
 pd.options.mode.chained_assignment = None  # default='warn'
 import seaborn as sns
 import re
-import astropy.stats
+#import astropy.stats
 import plotly.graph_objects as go
-from astropy import units as u
+#from astropy import units as u
 from statannotations.Annotator import Annotator
-from itertools import combinations
+import scienceplots
+import argparse
+import matplotlib.ticker as ticker
 
-figsize = 9,6
+import scienceplots
 
-plt.rc('xtick', labelsize=25) 
-plt.rc('ytick', labelsize=25) 
-
-sizeL=25
+plt.style.use(['science','nature']) # sans-serif font
 plt.close('all')
 
+plt.rc('xtick', labelsize=12) 
+plt.rc('ytick', labelsize=12) 
+plt.rc('axes', labelsize=12)
 
-cmap=sns.color_palette("Set2")
-sns.set_style("white")
-sns.set_style("ticks")
+params = {'legend.fontsize': 12,
+         'axes.labelsize': 12,
+         'axes.titlesize':12,
+         'xtick.labelsize':12,
+         'ytick.labelsize':12}
+plt.rcParams.update(params)
+
+
+cmap=sns.color_palette("colorblind")
+
+pixelS = 0.217
+
+
 ###############################################################################
 #
 # functions
@@ -158,30 +170,104 @@ print('Bottom: ',np.mean(df_all[df_all['cell name']=='Mature']['mean length chan
 
 plt.close('all')
 
-plt.figure(figsize=figsize)
-plt.hist(df_all["mean length per filament"][df_all['cell name']=='Young'],bins=70, density=True,alpha=0.5,label='Upper')
+plt.figure(figsize=(8.27/2, 2.5))
+plt.hist(df_all["mean length per filament"][df_all['cell name']=='Young']*pixelS,bins=50, density=False,alpha=0.5,label='Upper')
 #plt.xlim(0,400)
 #plt.ylim(0,0.023)
-plt.legend(fontsize=20)
+plt.xlabel('Length [$\mu$m]')
+plt.ylabel('Counts')
+plt.legend(fontsize=12)
 plt.tight_layout()
 plt.savefig(pathsave+'hist_upper.png')
 
-plt.figure(figsize=figsize)
-plt.hist(df_all["mean length per filament"][df_all['cell name']=='Expanding'],bins=50, density=True,alpha=0.5,label='Middle')
+plt.figure(figsize=(8.27/2, 2.5))
+plt.hist(df_all["mean length per filament"][df_all['cell name']=='Expanding']*pixelS,bins=50, density=False,alpha=0.5,label='Middle')
 #plt.xlim(0,1300)
 #plt.ylim(0,0.023)
-plt.legend(fontsize=20)
+plt.xlabel('Length [$\mu$m]')
+plt.ylabel('Counts')
+plt.legend(fontsize=12)
 plt.tight_layout()
 plt.savefig(pathsave+'hist_middle.png')
 
-plt.figure(figsize=figsize)
-plt.hist(df_all["mean length per filament"][df_all['cell name']=='Mature'],bins=50, density=True,alpha=0.5,label='Bottom')
+plt.figure(figsize=(8.27/2, 2.5))
+plt.hist(df_all["mean length per filament"][df_all['cell name']=='Mature']*pixelS,bins=50, density=False,alpha=0.5,label='Bottom')
 #plt.xlim(0,1300)
 #plt.ylim(0,0.023)
-plt.legend(fontsize=20)
+plt.xlabel('Length [$\mu$m]')
+plt.ylabel('Counts')
+plt.legend(fontsize=12)
 plt.tight_layout()
 plt.savefig(pathsave+'hist_bottom.png')
 
+fig, axd = plt.subplot_mosaic("ABC", figsize=(8.27,3))
+
+axd['A'].hist(df_all["mean length per filament"][df_all['cell name']=='Young']*pixelS,bins=120, density=False,alpha=1,color='#FF6700',label='Upper')
+axd['B'].hist(df_all["mean length per filament"][df_all['cell name']=='Expanding']*pixelS,bins=120, density=False,alpha=1,color='darkturquoise', label='Middle')
+axd['C'].hist(df_all["mean length per filament"][df_all['cell name']=='Mature']*pixelS,bins=120, density=False,alpha=1, color='indigo',label='Bottom')
+
+for nk in ['A','B','C']:
+    threshold_list = [3.26, 6.51, 21.7]
+    for s in threshold_list:
+        axd[nk].axvline(x=s, color='red', linestyle='--', linewidth=.5, label=f'Threshold {s}')
+
+axd['A'].set_xlabel('Length [$\mu$m]')
+axd['B'].set_xlabel('Length [$\mu$m]')
+axd['C'].set_xlabel('Length [$\mu$m]')
+
+axd['A'].set_ylabel("Counts, Young")
+axd['B'].set_ylabel("Counts, Expanding")
+axd['C'].set_ylabel("Counts, Mature")
+#axd['A'].sharey(axd['B'])
+#axd['B'].sharey(axd['C'])
+
+for n, (key, ax) in enumerate(axd.items()):
+
+    ax.text(-0.1, 1.1, key, transform=ax.transAxes, 
+            size=12, weight='bold')
+
+#plt.legend(fontsize=25,frameon=False)
+plt.tight_layout()
+plt.savefig(pathsave + 'histograms_cotyledon.pdf')
+
+
+
+
+
+
+rot_over = ['Young','Expanding','Mature']
+for n in rot_over:
+    data = np.array(df_all["mean length per filament"][df_all['cell name']==n]*pixelS)
+    
+    lengths = pd.DataFrame(data, columns=["length"])
+    from sklearn.cluster import KMeans
+    # Use K-means clustering to divide data into 4 clusters
+    kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
+    lengths["group"] = kmeans.fit_predict(lengths)
+    
+    # Sort the clusters by their mean value
+    cluster_means = lengths.groupby("group")["length"].mean().sort_values().index
+    mapping = {cluster: i for i, cluster in enumerate(cluster_means)}
+    lengths["group"] = lengths["group"].map(mapping)
+    
+    # Map groups to descriptive labels
+    labels = {0: "Very Short", 1: "Short", 2: "Medium", 3: "Long"}
+    lengths["group_label"] = lengths["group"].map(labels)
+    
+    # Plot the histogram with clusters
+    plt.figure(figsize=(7, 4))
+    for group, label in labels.items():
+        plt.hist(lengths[lengths["group"] == group]["length"], bins=30, alpha=0.6, label=label)
+    
+    plt.xlabel("Length")
+    plt.ylabel("Frequency")
+    plt.title("Length Distribution by Groups")
+    plt.legend()
+    plt.show()
+    for k in range(3):
+        print(n, np.max(lengths['length'][lengths['group']==k]), lengths['length'][lengths['group']==k].shape[0])
+        
+        
 #################################
 # creation into 4 groups for len change 
 cutval1 = 15
@@ -249,14 +335,14 @@ list_ylabel = ['Mean angle change','Mean length change','Median length change','
 
 for i in range(len(list_plots)):  
     y = list_plots[i]
-    plt.figure(figsize=figsize)
+    plt.figure(figsize=(5,5))
     ax = sns.boxplot(data=df_all, x=x, y=y, order=order, hue=hue, hue_order=hue_order,showfliers = False,notch=True,bootstrap=10000,
                 medianprops={"color": "coral"},palette=cmap)
     annot = Annotator(ax, pairs, data=df_all, x=x, y=y, order=order, hue=hue, hue_order=hue_order)
     annot.configure(test='Mann-Whitney', verbose=2)
     annot.apply_test()
     annot.annotate()
-    plt.ylabel(list_ylabel[i],size=sizeL)
+    plt.ylabel(list_ylabel[i],size=10)
     plt.xlabel('')
     #plt.ylim(ylim[i])
     #plt.grid()
@@ -396,7 +482,7 @@ pairs  = [
 
 
 list_plots = ['mean filament bendiness','mean filament length','mean filament movement','filament movement per length','mean intensity','mean intensity per length','mean filament angle']
-list_ylabel = ['Mean bendiness ratio','Mean length','Mean movement [\u03bcm/s]','Mean movement per length','Mean intensity','Mean intensity per \u03bcm','Mean filament angle']
+list_ylabel = ['Mean bendiness ratio','Mean length',r'Mean movement [$\mu m/s$]','Mean movement per length','Mean intensity',r'Mean intensity per $\mu m$','Mean filament angle']
 
 for i in range(len(list_plots)):  
     y = list_plots[i]
@@ -631,3 +717,26 @@ iris = datasets.load_iris()
 target_names = iris.target_names
 y = iris.target
 '''
+
+###############################################################################
+#
+# final plot
+#
+###############################################################################
+
+
+fig, axd = plt.subplot_mosaic("E..;HIJ", figsize=(8.27,4))
+
+
+sns.lineplot(data=angleFil, x='name', y='angle',hue='cells',marker='o',markersize=10,palette=sns.color_palette("Set2")[0:3],ax=axd['E'])
+
+
+axd['E'].legend(loc='best',frameon=False)
+
+
+
+plt.legend(fontsize=12,frameon=False)
+plt.ylabel('Circular mean angle ['r'$\degree$]',fontsize=sizeL)
+plt.xlabel('')
+#plt.xticks(rotation=45)
+plt.tight_layout()

@@ -1,0 +1,5 @@
+scipy>=0.19.1
+networkx>=2.2
+numpy>=1.13.3
+matplotlib>=2.1.1
+cvxopt>=1.2.3
