@@ -1,0 +1,10 @@
+__pycache__
+GraFT/still
+GraFT/timeseries
+build
+dist
+*.egg-info
+venv*/
+graft/output/
+graft/still/
+graft/timeseries/

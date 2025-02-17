@@ -1,0 +1,18 @@
+name: Ping deployed app
+# This workflow is triggered at a scheduled interval of every 30 minutes
+on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string.
+    # /300 denotes that it will run once every 300 minutes
+    - cron:  '*/300 * * * *'
+  workflow_dispatch:  # Allows manual triggering
+
+jobs: 
+  ping-app: 
+    name: Ping deployed GraFT app
+    runs-on: ubuntu-latest 
+    steps: 
+      - name: Use curl to ping streamlit app
+        run: | 
+          curl -I "https://d8zrfmfhenapwhf52hqvzh.streamlit.app/"
+

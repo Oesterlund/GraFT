@@ -1,4 +1,5 @@
 # GraFT: Graph of Filaments over Time
+
 <!--![alt text](https://github.com/Oesterlund/GraFT/blob/main/GraFt_logo.png) -->
 <p align="center">
    <img src="https://github.com/Oesterlund/GraFT/blob/main/GraFT_logo.png" alt="alt text" width="500">
@@ -18,39 +19,48 @@ The tool can perform identifcation on still image-data, and identification with 
 # Documentation
 
 ## Dependencies
-The method was written in Python 3.8 and is dependent on the libraries mentioned below.
-Current libraries with versions was used to build the code:
-- networkx 2.8.4
-- scikit-image 0.19.3
-- scipy 1.9.3
-- pandas 1.4.4
-- numpy 1.23.5
-- matplotlib 3.5.1
-- simplification 0.6.2
-- plotly 5.11.0
-- astropy 5.1
-- pickle 4.0
-- scikit-spatial 6.8.0
 
-I recommend creating a new python environment using conda and activate it to install dependencies
+This software was written using Python 3.8 and the following libraries: networkx, scikit-image, scipy, pandas, numpy, matplotlib, simplification, plotly, astropy and scikit-spatial (dependency versions are listed in `pyproject.toml`).
+
+## Installation
+
+I recommend creating a new Python environment using [conda](https://www.anaconda.com/download/success#miniconda) and activate it to install dependencies
 ```
-conda create -n cdfs python
-conda activate cdfs
+conda create -n graft python=3.8
+conda activate graft
 ```
-And install the dependencies with either pip or conda
+And install the package and its dependencies using pip:
+
 ```
-conda install NetworkX==2.8.4
-conda install scikit-image 0.19.3
-conda install scipy==1.9.3
-conda install pandas==1.4.4
-conda install numpy==1.23.5
-conda install matplotlib==3.5.1
-conda install simplification==0.6.2
-conda install plotly==5.11.0
-conda install astropy==5.1
-conda install scikit-spatial==6.8.0
+pip install -e .
 ```
+
 Installation time does not take long, I recomend working with a GUI like [Anaconda-Navigator](https://docs.anaconda.com/free/navigator/index.html), which contains the IDE [Spyder](https://docs.anaconda.com/free/anaconda/ide-tutorials/spyder/).
+
+## Usage
+
+### GraFT web app
+
+To run the web app locally, change to the directory where you cloned the repository and execute the command graft-webapp. The command line will display the server's address (e.g., http://localhost:8501). Typically, this process will automatically open a new browser tab pointing to that URL.
+
+### GraFT command line interface
+
+After you have changed to the directory where you cloned the repository, the GraFT CLI can be used like this on a time series image
+
+```
+graft-cli timeseries src/graft/data/timeseries.tif /tmp/graft_output
+```
+
+or like this on a still image:
+
+```
+graft-cli still src/graft/data/still_image.tif /tmp/graft_output
+```
+
+### GraFT Python library
+
+GraFT can also be used as a library. For a concrete usage example, see `src/graft/example_run.py`.
+
 
 # Workflow
 
