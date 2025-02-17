@@ -8,3 +8,4 @@ venv*/
 graft/output/
 graft/still/
 graft/timeseries/
+src/graft/data/*.tif
